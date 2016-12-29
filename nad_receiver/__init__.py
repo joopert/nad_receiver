@@ -5,7 +5,7 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
 from nad_receiver.nad_commands import CMDS
-import serial
+import serial  # pylint: disable=import-error
 
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
@@ -15,6 +15,7 @@ class NADReceiver(object):
     """
     NAD receiver
     """
+
     def __init__(self, serial_port, timeout=DEFAULT_TIMEOUT,
                  write_timeout=DEFAULT_WRITE_TIMEOUT):
         self.ser = serial.Serial(serial_port, baudrate=115200, timeout=timeout,
@@ -33,7 +34,8 @@ class NADReceiver(object):
             if value is None:
                 cmd = ''.join([CMDS[domain][function]['cmd'], operator])
             else:
-                cmd = ''.join([CMDS[domain][function]['cmd'], operator, value])
+                cmd = ''.join(
+                    [CMDS[domain][function]['cmd'], operator, str(value)])
         else:
             raise ValueError('Invalid operator provided %s' % operator)
 
