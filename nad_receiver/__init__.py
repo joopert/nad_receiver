@@ -10,6 +10,8 @@ import serial  # pylint: disable=import-error
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
 
+self._source = self._nad_receiver.main_source\
+    ('=', self._reverse_mapping.get(source))
 
 class NADReceiver(object):
     """
@@ -47,6 +49,7 @@ class NADReceiver(object):
         self.ser.read(1)  # NAD uses the prefix and suffix \r.
         # With this we read the first \r and skip it
         msg = self.ser.read_until(bytes('\r'.encode()))
+
         return msg.decode().strip().split('=')[
             1]  # b'Main.Volume=-12\r will return -12
 
