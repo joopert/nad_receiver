@@ -1,5 +1,6 @@
 """
 NAD has an RS232 interface to control the receiver.
+
 Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
@@ -10,25 +11,22 @@ import serial  # pylint: disable=import-error
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
 
-self._source = self._nad_receiver.main_source\
-    ('=', self._reverse_mapping.get(source))
 
 class NADReceiver(object):
-    """
-    NAD receiver
-    """
+    """NAD receiver."""
 
     def __init__(self, serial_port, timeout=DEFAULT_TIMEOUT,
                  write_timeout=DEFAULT_WRITE_TIMEOUT):
+        """Create RS232 connection."""
         self.ser = serial.Serial(serial_port, baudrate=115200, timeout=timeout,
                                  write_timeout=write_timeout)
 
     def exec_command(self, domain, function, operator, value=None):
         """
-         Write a command to the receiver and read the value it returns.
-         The receiver will always return a value, also when setting a value.
-        """
+        Write a command to the receiver and read the value it returns.
 
+        The receiver will always return a value, also when setting a value.
+        """
         if operator in CMDS[domain][function]['supported_operators']:
             if operator is '=' and value is None:
                 raise ValueError('No value provided')
@@ -54,93 +52,69 @@ class NADReceiver(object):
             1]  # b'Main.Volume=-12\r will return -12
 
     def main_dimmer(self, operator, value=None):
-        """
-        Execute Main.Dimmer
-        """
+        """Execute Main.Dimmer."""
         return self.exec_command('main', 'dimmer', operator, value)
 
     def main_mute(self, operator, value=None):
-        """
-        Execute Main.Mute
-        """
+        """Execute Main.Mute."""
         return self.exec_command('main', 'mute', operator, value)
 
     def main_power(self, operator, value=None):
-        """
-        Execute Main.Power
-        """
+        """Execute Main.Power."""
         return self.exec_command('main', 'power', operator, value)
 
     def main_volume(self, operator, value=None):
         """
-        Execute Main.Volume
+        Execute Main.Volume.
+
         Returns int
         """
         return int(self.exec_command('main', 'volume', operator, value))
 
     def main_ir(self, operator, value=None):
-        """
-        Execute Main.IR
-        """
+        """Execute Main.IR."""
         return self.exec_command('main', 'ir', operator, value)
 
     def main_listeningmode(self, operator, value=None):
-        """
-        Execute Main.ListeningMode
-        """
+        """Execute Main.ListeningMode."""
         return self.exec_command('main', 'listeningmode', operator, value)
 
     def main_sleep(self, operator, value=None):
-        """
-        Execute Main.Sleep
-        """
+        """Execute Main.Sleep."""
         return self.exec_command('main', 'sleep', operator, value)
 
     def main_source(self, operator, value=None):
         """
-        Execute Main.Source
+        Execute Main.Source.
+
         Returns int
         """
         return int(self.exec_command('main', 'source', operator, value))
 
     def main_version(self, operator, value=None):
-        """
-        Execute Main.Version
-        """
+        """Execute Main.Version."""
         return self.exec_command('main', 'version', operator, value)
 
     def tuner_am_frequency(self, operator, value=None):
-        """
-        Execute Tuner.AM.Frequence
-        """
+        """Execute Tuner.AM.Frequence."""
         return self.exec_command('tuner', 'am_frequency', operator, value)
 
     def tuner_am_preset(self, operator, value=None):
-        """
-        Execute Tuner.AM.Preset
-        """
+        """Execute Tuner.AM.Preset."""
         return self.exec_command('tuner', 'am_preset', operator, value)
 
     def tuner_band(self, operator, value=None):
-        """
-        Execute Tuner.Band
-        """
+        """Execute Tuner.Band."""
         return self.exec_command('tuner', 'band', operator, value)
 
     def tuner_fm_frequency(self, operator, value=None):
-        """
-        Execute Tuner.FM.Frequence
-        """
+        """Execute Tuner.FM.Frequence."""
         return self.exec_command('tuner', 'fm_frequency', operator, value)
 
     def tuner_fm_mute(self, operator, value=None):
-        """
-        Execute Tuner.FM.Mute
-        """
+        """Execute Tuner.FM.Mute."""
         return self.exec_command('tuner', 'fm_mute', operator, value)
 
     def tuner_fm_preset(self, operator, value=None):
-        """
-        Execute Tuner.FM.Preset
-        """
+        """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
