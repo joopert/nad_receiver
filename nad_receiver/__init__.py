@@ -5,6 +5,8 @@ Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
+import codecs
+import socket
 from nad_receiver.nad_commands import CMDS
 import serial  # pylint: disable=import-error
 
@@ -118,3 +120,40 @@ class NADReceiver(object):
     def tuner_fm_preset(self, operator, value=None):
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
+
+class NADtcp(object):
+
+    def __init__(self, host):
+        self._host = host
+
+    def send(self, message, read_reply=False):
+        """Send a command string to the amplifier."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((self._host, self._port))
+        except Exception:
+            return
+        message = codecs.decode(message, 'hex_codec')
+        sock.send(message)
+        sleep(0.5)
+        if read_reply:
+            reply = sock.recv(self._buffersize)
+            sock.close()
+            return reply
+        sock.close()
+        sleep(1)
+
+    def status(self):
+        query_all = \
+            "000102020400010202060001020207000102020800010202050001020209" \
+            "000102020a000102020c0001020203000102020d00010207000001020800"
+
+        nad_reply = self.send(query_all, read_reply=True)
+        if nad_reply is None:
+            return
+        nad_reply = codecs.encode(nad_reply, 'hex').decode("utf-8")
+
+        # split reply into parts of 10 characters
+        num_chars = 10
+        nad_status = [nad_reply[i:i + num_chars]
+                      for i in range(0, len(nad_reply), num_chars)]
