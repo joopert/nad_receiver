@@ -157,3 +157,4 @@ class NADtcp(object):
         num_chars = 10
         nad_status = [nad_reply[i:i + num_chars]
                       for i in range(0, len(nad_reply), num_chars)]
+        return nad_status
