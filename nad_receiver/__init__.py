@@ -8,6 +8,7 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 import codecs
 import socket
 from nad_receiver.nad_commands import CMDS
+from time import sleep
 import serial  # pylint: disable=import-error
 
 DEFAULT_TIMEOUT = 1
@@ -121,7 +122,28 @@ class NADReceiver(object):
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
 
-class NADtcp(object):
+
+class D7050(object):
+
+    POLL_VOLUME = "0001020204"
+    POLL_POWER = "0001020209"
+    POLL_MUTED = "000102020a"
+    POLL_SOURCE = "0001020203"
+
+    CMD_POWERSAVE = "00010207000001020207"
+    CMD_OFF = "0001020900"
+    CMD_ON = "0001020901"
+    CMD_VOLUME = "00010204"
+    CMD_MUTE = "0001020a01"
+    CMD_UNMUTE = "0001020a00"
+    CMD_SOURCE = "00010203"
+
+    SOURCES = {'Coaxial 1': '00', 'Coaxial 2': '01', 'Optical 1': '02',
+               'Optical 2': '03', 'Computer': '04', 'Airplay': '05',
+               'Dock': '06', 'Bluetooth': '07'}
+
+    PORT = 50001
+    BUFFERSIZE = 1024
 
     def __init__(self, host):
         self._host = host
@@ -130,25 +152,26 @@ class NADtcp(object):
         """Send a command string to the amplifier."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((self._host, self._port))
-        except Exception:
+            sock.connect((self._host, self.PORT))
+        except ConnectionError:
             return
         message = codecs.decode(message, 'hex_codec')
         sock.send(message)
-        sleep(0.5)
         if read_reply:
-            reply = sock.recv(self._buffersize)
+            reply = ''
+            while len(reply) < len(message):
+                sleep(0.5)
+                reply = sock.recv(self.BUFFERSIZE)
             sock.close()
             return reply
         sock.close()
-        sleep(1)
+        sleep(0.5)
 
     def status(self):
-        query_all = \
-            "000102020400010202060001020207000102020800010202050001020209" \
-            "000102020a000102020c0001020203000102020d00010207000001020800"
-
-        nad_reply = self.send(query_all, read_reply=True)
+        nad_reply = self.send(self.POLL_VOLUME +
+                              self.POLL_POWER +
+                              self.POLL_MUTED +
+                              self.POLL_SOURCE, read_reply=True)
         if nad_reply is None:
             return
         nad_reply = codecs.encode(nad_reply, 'hex').decode("utf-8")
@@ -157,4 +180,33 @@ class NADtcp(object):
         num_chars = 10
         nad_status = [nad_reply[i:i + num_chars]
                       for i in range(0, len(nad_reply), num_chars)]
-        return nad_status
+
+        return {'volume': int(nad_status[0][-2:], 16),
+                'power': nad_status[1][-2:] == '01',
+                'muted': nad_status[2][-2:] == '01',
+                'source': nad_status[3][-2:]}
+
+    def power_off(self):
+        self.send(self.CMD_POWERSAVE)
+        self.send(self.CMD_OFF)
+
+    def power_on(self):
+        self.send(self.CMD_ON)
+
+    def set_volume(self, volume):
+        if 0 <= volume <= 200:
+            volume = format(volume, "02x")  # Convert to hex
+            self.send(self.CMD_VOLUME + volume)
+
+    def mute(self):
+        self.send(self.CMD_MUTE)
+
+    def unmute(self):
+        self.send(self.CMD_UNMUTE)
+
+    def select_source(self, source):
+        if source in self.SOURCES:
+            self.send(self.CMD_SOURCE + self.SOURCES[source])
+
+    def available_sources(self):
+        return list(self.SOURCES.keys())
