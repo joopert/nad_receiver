@@ -16,7 +16,8 @@ receiver.main_volume('=', '-40')  # specify dB, will return new value
 print(receiver.main_volume('?'))  # will return current value
 ```
 
-supported commands with supported operators:
+supported commands with supported operators
+
 * main_volume [ +, -, =, ? ]
 * main_mute [ +, -, =, ? ]
 * main_power [ +, -, =, ? ]
@@ -32,3 +33,20 @@ supported commands with supported operators:
 * tuner_am_preset [ +, -, =, ? ]
 * tuner_fm_mute [ +, -, =, ? ]
 * tuner_fm_frequency [ +, - ]
+
+# D7050
+The D7050 class supports the NAD D 7050 amplifier and communicates via tcp/ip.
+
+Usage:
+```
+D7050 = D7050(host_ip)
+
+D7050.power_on()
+D7050.status()  # Returns a dictionary with keys 'volume', 'power', 'muted' and 'source'.
+D7050.set_volume(150)
+sources = D7050.available_sources()
+D7050.select_source('Optical 1')
+D7050.mute()
+D7050.unmute()
+D7050.power_off()
+```
