@@ -141,14 +141,17 @@ class D7050(object):
     SOURCES = {'Coaxial 1': '00', 'Coaxial 2': '01', 'Optical 1': '02',
                'Optical 2': '03', 'Computer': '04', 'Airplay': '05',
                'Dock': '06', 'Bluetooth': '07'}
+    SOURCES_REVERSED = {value: key for key, value in
+                        SOURCES.items()}
 
     PORT = 50001
     BUFFERSIZE = 1024
 
     def __init__(self, host):
+        """Setup globals."""
         self._host = host
 
-    def send(self, message, read_reply=False):
+    def _send(self, message, read_reply=False):
         """Send a command string to the amplifier."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -168,10 +171,16 @@ class D7050(object):
         sleep(0.5)
 
     def status(self):
-        nad_reply = self.send(self.POLL_VOLUME +
-                              self.POLL_POWER +
-                              self.POLL_MUTED +
-                              self.POLL_SOURCE, read_reply=True)
+        """
+        Return the status of the device.
+        
+        Returns a dictionary with keys 'volume' (int 0-200) , 'power' (bool),
+         'muted' (bool) and 'source' (str). 
+        """
+        nad_reply = self._send(self.POLL_VOLUME +
+                               self.POLL_POWER +
+                               self.POLL_MUTED +
+                               self.POLL_SOURCE, read_reply=True)
         if nad_reply is None:
             return
         nad_reply = codecs.encode(nad_reply, 'hex').decode("utf-8")
@@ -184,29 +193,36 @@ class D7050(object):
         return {'volume': int(nad_status[0][-2:], 16),
                 'power': nad_status[1][-2:] == '01',
                 'muted': nad_status[2][-2:] == '01',
-                'source': nad_status[3][-2:]}
+                'source': self.SOURCES_REVERSED[nad_status[3][-2:]]}
 
     def power_off(self):
-        self.send(self.CMD_POWERSAVE)
-        self.send(self.CMD_OFF)
+        """Power the device off."""
+        self._send(self.CMD_POWERSAVE)
+        self._send(self.CMD_OFF)
 
     def power_on(self):
-        self.send(self.CMD_ON)
+        """Power the device on."""
+        self._send(self.CMD_ON)
 
     def set_volume(self, volume):
+        """Set volume level of the device. Accepts integer values 0-200."""
         if 0 <= volume <= 200:
             volume = format(volume, "02x")  # Convert to hex
-            self.send(self.CMD_VOLUME + volume)
+            self._send(self.CMD_VOLUME + volume)
 
     def mute(self):
-        self.send(self.CMD_MUTE)
+        """Mute the device."""
+        self._send(self.CMD_MUTE)
 
     def unmute(self):
-        self.send(self.CMD_UNMUTE)
+        """Unmute the device."""
+        self._send(self.CMD_UNMUTE)
 
     def select_source(self, source):
+        """Select a source from the list of sources."""
         if source in self.SOURCES:
-            self.send(self.CMD_SOURCE + self.SOURCES[source])
+            self._send(self.CMD_SOURCE + self.SOURCES[source])
 
     def available_sources(self):
+        """Returns a list of available sources."""
         return list(self.SOURCES.keys())
