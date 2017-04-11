@@ -5,11 +5,11 @@ Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
-import codecs
-import socket
 from nad_receiver.nad_commands import CMDS
 from time import sleep
 import serial  # pylint: disable=import-error
+import codecs
+import socket
 
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
