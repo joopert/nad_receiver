@@ -153,22 +153,17 @@ class D7050(object):
 
     def _send(self, message, read_reply=False):
         """Send a command string to the amplifier."""
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((self._host, self.PORT))
-        except ConnectionError:
-            return
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self._host, self.PORT))
         message = codecs.decode(message, 'hex_codec')
         sock.send(message)
         if read_reply:
             reply = ''
             while len(reply) < len(message):
-                sleep(0.5)
                 reply = sock.recv(self.BUFFERSIZE)
             sock.close()
             return reply
         sock.close()
-        sleep(0.5)
 
     def status(self):
         """
