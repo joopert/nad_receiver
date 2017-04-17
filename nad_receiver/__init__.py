@@ -123,6 +123,7 @@ class NADReceiver(object):
 
 
 class D7050(object):
+    """Support NAD D 7050 amplifier."""
 
     POLL_VOLUME = "0001020204"
     POLL_POWER = "0001020209"
@@ -166,8 +167,7 @@ class D7050(object):
             sock.close()
             if tries >= max_tries:
                 return
-            else:
-                return reply
+            return reply
         sock.close()
 
     def status(self):
@@ -223,5 +223,5 @@ class D7050(object):
             self._send(self.CMD_SOURCE + self.SOURCES[source])
 
     def available_sources(self):
-        """Returns a list of available sources."""
+        """Return a list of available sources."""
         return list(self.SOURCES.keys())
