@@ -6,7 +6,6 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
 from nad_receiver.nad_commands import CMDS
-from time import sleep
 import serial  # pylint: disable=import-error
 import codecs
 import socket
@@ -155,22 +154,28 @@ class D7050(object):
         """Send a command string to the amplifier."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((self._host, self.PORT))
-        message = codecs.decode(message, 'hex_codec')
-        sock.send(message)
+        sock.send(codecs.decode(message, 'hex_codec'))
         if read_reply:
             reply = ''
-            while len(reply) < len(message):
-                reply = sock.recv(self.BUFFERSIZE)
+            tries = 0
+            max_tries = 20
+            while len(reply) < len(message) and tries < max_tries:
+                reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
+                    .decode("utf-8")
+                tries += 1
             sock.close()
-            return reply
+            if tries >= max_tries:
+                return
+            else:
+                return reply
         sock.close()
 
     def status(self):
         """
         Return the status of the device.
-        
+
         Returns a dictionary with keys 'volume' (int 0-200) , 'power' (bool),
-         'muted' (bool) and 'source' (str). 
+         'muted' (bool) and 'source' (str).
         """
         nad_reply = self._send(self.POLL_VOLUME +
                                self.POLL_POWER +
@@ -178,7 +183,6 @@ class D7050(object):
                                self.POLL_SOURCE, read_reply=True)
         if nad_reply is None:
             return
-        nad_reply = codecs.encode(nad_reply, 'hex').decode("utf-8")
 
         # split reply into parts of 10 characters
         num_chars = 10
