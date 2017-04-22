@@ -5,10 +5,10 @@ Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
-from nad_receiver.nad_commands import CMDS
-import serial  # pylint: disable=import-error
 import codecs
 import socket
+from nad_receiver.nad_commands import CMDS
+import serial  # pylint: disable=import-error
 
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
@@ -122,8 +122,12 @@ class NADReceiver(object):
         return self.exec_command('tuner', 'fm_preset', operator, value)
 
 
-class D7050(object):
-    """Support NAD D 7050 amplifier."""
+class NADReceiverTCP(object):
+    """
+    Support NAD amplifiers that use tcp for communication.
+
+    Known supported model: Nad D 7050.
+    """
 
     POLL_VOLUME = "0001020204"
     POLL_POWER = "0001020209"
