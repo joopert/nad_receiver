@@ -200,8 +200,7 @@ class NADReceiverTCP(object):
 
     def power_off(self):
         """Power the device off."""
-        self._send(self.CMD_POWERSAVE)
-        self._send(self.CMD_OFF)
+        self._send(self.CMD_POWERSAVE + self.CMD_OFF)
 
     def power_on(self):
         """Power the device on."""
@@ -215,7 +214,7 @@ class NADReceiverTCP(object):
 
     def mute(self):
         """Mute the device."""
-        self._send(self.CMD_MUTE)
+        self._send(self.CMD_MUTE, read_reply=True)
 
     def unmute(self):
         """Unmute the device."""
@@ -224,7 +223,7 @@ class NADReceiverTCP(object):
     def select_source(self, source):
         """Select a source from the list of sources."""
         if source in self.SOURCES:
-            self._send(self.CMD_SOURCE + self.SOURCES[source])
+            self._send(self.CMD_SOURCE + self.SOURCES[source], read_reply=True)
 
     def available_sources(self):
         """Return a list of available sources."""
