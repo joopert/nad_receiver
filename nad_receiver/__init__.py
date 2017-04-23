@@ -163,19 +163,24 @@ class NADReceiverTCP(object):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect((self._host, self.PORT))
-                sock.send(codecs.decode(message, 'hex_codec'))
                 break
-            except ConnectionError:
+            except (ConnectionError, BrokenPipeError):
                 if tries == 3:
+                    print("socket connect failed.")
                     return
                 sleep(0.1)
+        sock.send(codecs.decode(message, 'hex_codec'))
         if read_reply:
+            sleep(0.1)
             reply = ''
             tries = 0
             max_tries = 20
             while len(reply) < len(message) and tries < max_tries:
-                reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
-                    .decode("utf-8")
+                try:
+                    reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
+                        .decode("utf-8")
+                except (ConnectionError, BrokenPipeError):
+                    pass
                 tries += 1
             sock.close()
             if tries >= max_tries:
