@@ -7,6 +7,7 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 
 import codecs
 import socket
+from time import sleep
 from nad_receiver.nad_commands import CMDS
 import serial  # pylint: disable=import-error
 
@@ -157,9 +158,17 @@ class NADReceiverTCP(object):
 
     def _send(self, message, read_reply=False):
         """Send a command string to the amplifier."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((self._host, self.PORT))
-        sock.send(codecs.decode(message, 'hex_codec'))
+        sock = None
+        for tries in range(0, 3):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((self._host, self.PORT))
+                sock.send(codecs.decode(message, 'hex_codec'))
+                break
+            except ConnectionError:
+                if tries == 3:
+                    return
+                sleep(0.1)
         if read_reply:
             reply = ''
             tries = 0
@@ -204,7 +213,7 @@ class NADReceiverTCP(object):
 
     def power_on(self):
         """Power the device on."""
-        self._send(self.CMD_ON)
+        self._send(self.CMD_ON, read_reply=True)
 
     def set_volume(self, volume):
         """Set volume level of the device. Accepts integer values 0-200."""
