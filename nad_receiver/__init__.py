@@ -10,6 +10,7 @@ import socket
 from time import sleep
 from nad_receiver.nad_commands import CMDS
 import serial  # pylint: disable=import-error
+import threading
 
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
@@ -23,6 +24,7 @@ class NADReceiver(object):
         """Create RS232 connection."""
         self.ser = serial.Serial(serial_port, baudrate=115200, timeout=timeout,
                                  write_timeout=write_timeout)
+        self.lock = threading.Lock()
 
     def exec_command(self, domain, function, operator, value=None):
         """
@@ -45,14 +47,19 @@ class NADReceiver(object):
         if not self.ser.is_open:
             self.ser.open()
 
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
+        self.lock.acquire()
+
         self.ser.write(''.join(['\r', cmd, '\r']).encode('utf-8'))
 
         self.ser.read(1)  # NAD uses the prefix and suffix \r.
         # With this we read the first \r and skip it
         msg = self.ser.read_until(bytes('\r'.encode()))
+        self.lock.release()
 
-        return msg.decode().strip().split('=')[
-            1]  # b'Main.Volume=-12\r will return -12
+        return msg.decode().strip().split('=')[1]
+        # b'Main.Volume=-12\r will return -12
 
     def main_dimmer(self, operator, value=None):
         """Execute Main.Dimmer."""
