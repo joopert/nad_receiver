@@ -169,6 +169,7 @@ class NADReceiverTCP(object):
         for tries in range(0, 3):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(5.0)
                 sock.connect((self._host, self.PORT))
                 break
             except (ConnectionError, BrokenPipeError):
