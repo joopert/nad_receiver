@@ -15,7 +15,7 @@ receiver.main_volume('-')  #  will decrease volume with 1 and return new value
 receiver.main_volume('=', '-40')  # specify dB, will return new value
 print(receiver.main_volume('?'))  # will return current value
 
-D7050 = D7050(host_ip)  # The IP address of your amplifier in the network.
+D7050 = NADReceiverTCP(host_ip)  # The IP address of your amplifier in the network.
 
 D7050.power_on()
 D7050.available_sources()  # Returns a list of available sources in human readable format.
