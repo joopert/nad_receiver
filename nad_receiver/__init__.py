@@ -268,6 +268,12 @@ class NADReceiverTelnet(NADReceiver):
         msg = self.telnet.read_until('\n', self.timeout)
         #msg.decode().strip().split('=')[1]
 
+    def __del__(self):
+        """
+        Close any telnet session
+        """
+        self.telnet.close()
+
     def exec_command(self, domain, function, operator, value=None):
         """
         Write a command to the receiver and read the value it returns.
@@ -287,7 +293,7 @@ class NADReceiverTelnet(NADReceiver):
         # Not possible to test for open Telnet connection
         # let is raise if any issues
         # Yes, for telnet the first \r / \n is recommended only
-        self.telnet.write(''.join([cmd, \n']))
+        self.telnet.write(''.join([cmd, '\n']))
 
         msg = self.telnet.read_until('\n', self.timeout)
         msg = msg.strip('\r\n')
