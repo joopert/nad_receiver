@@ -11,6 +11,7 @@ from time import sleep
 from nad_receiver.nad_commands import CMDS
 import serial  # pylint: disable=import-error
 import threading
+import telnetlib
 
 DEFAULT_TIMEOUT = 1
 DEFAULT_WRITE_TIMEOUT = 1
@@ -249,3 +250,48 @@ class NADReceiverTCP(object):
     def available_sources(self):
         """Return a list of available sources."""
         return list(self.SOURCES.keys())
+
+
+class NADReceiverTelnet(NADReceiver):
+    """
+    Support NAD amplifiers that use telnet for communication.
+    Supports all commands from the RS232 base class
+
+    Known supported model: Nad T787.
+    """
+    def __init__(self, host, port=23, timeout=DEFAULT_TIMEOUT):
+        """Create Telnet connection."""
+        self.telnet = telnetlib.Telnet(host, port, 5)
+        self.timeout = timeout
+        # Some versions of the firmware report Main.Model=T787.
+        # some versions do not, we want to clear that line
+        msg = self.telnet.read_until('\n', self.timeout)
+        #msg.decode().strip().split('=')[1]
+
+    def exec_command(self, domain, function, operator, value=None):
+        """
+        Write a command to the receiver and read the value it returns.
+        """
+        if operator in CMDS[domain][function]['supported_operators']:
+            if operator is '=' and value is None:
+                raise ValueError('No value provided')
+
+            if value is None:
+                cmd = ''.join([CMDS[domain][function]['cmd'], operator])
+            else:
+                cmd = ''.join(
+                    [CMDS[domain][function]['cmd'], operator, str(value)])
+        else:
+            raise ValueError('Invalid operator provided %s' % operator)
+
+        # Not possible to test for open Telnet connection
+        # let is raise if any issues
+        # Yes, for telnet the first \r / \n is recommended only
+        self.telnet.write(''.join([cmd, \n']))
+
+        msg = self.telnet.read_until('\n', self.timeout)
+        msg = msg.strip('\r\n')
+        #print("NAD reponded with '%s'" % msg)
+
+        return msg.decode().strip().split('=')[1]
+        # b'Main.Volume=-12\r will return -12
