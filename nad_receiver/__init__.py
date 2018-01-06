@@ -222,11 +222,16 @@ class NADReceiverTCP(object):
 
     def power_off(self):
         """Power the device off."""
-        self._send(self.CMD_POWERSAVE + self.CMD_OFF)
+        status = self.status()
+        if status['power']:  # Setting power off when it is already off can cause hangs
+            self._send(self.CMD_POWERSAVE + self.CMD_OFF)
 
     def power_on(self):
         """Power the device on."""
-        self._send(self.CMD_ON, read_reply=True)
+        status = self.status()
+        if not status['power']:
+            self._send(self.CMD_ON, read_reply=True)
+            sleep(0.5)  # Give NAD7050 some time before next command
 
     def set_volume(self, volume):
         """Set volume level of the device. Accepts integer values 0-200."""
@@ -241,11 +246,14 @@ class NADReceiverTCP(object):
     def unmute(self):
         """Unmute the device."""
         self._send(self.CMD_UNMUTE)
-
+ 
     def select_source(self, source):
         """Select a source from the list of sources."""
-        if source in self.SOURCES:
-            self._send(self.CMD_SOURCE + self.SOURCES[source], read_reply=True)
+        status = self.status()
+        if status['power']:  # Changing source when off may hang NAD7050
+            if status['source'] != source:  # Setting the source to the current source will hang the NAD7050
+                if source in self.SOURCES:
+                    self._send(self.CMD_SOURCE + self.SOURCES[source], read_reply=True)
 
     def available_sources(self):
         """Return a list of available sources."""
