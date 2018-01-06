@@ -1,10 +1,10 @@
 from setuptools import setup
 
 setup(name='nad_receiver',
-      version='0.0.5',
+      version='0.0.7',
       description='Library to interface with NAD receivers through RS232 and TCP',
       url='https://github.com/joopert/nad_receiver',
-      download_url='https://github.com/joopert/nad_receiver/archive/0.0.5.tar.gz', #
+      download_url='https://github.com/joopert/nad_receiver/archive/0.0.7.tar.gz', #
       author='joopert',
       license='MIT',
       packages=['nad_receiver'],
