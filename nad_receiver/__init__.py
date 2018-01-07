@@ -273,7 +273,7 @@ class NADReceiverTelnet(NADReceiver):
         self.timeout = timeout
         # Some versions of the firmware report Main.Model=T787.
         # some versions do not, we want to clear that line
-        msg = self.telnet.read_until('\n', self.timeout)
+        msg = self.telnet.read_until('\n'.encode(), self.timeout)
         #msg.decode().strip().split('=')[1]
 
     def __del__(self):
@@ -301,11 +301,11 @@ class NADReceiverTelnet(NADReceiver):
         # Not possible to test for open Telnet connection
         # let is raise if any issues
         # Yes, for telnet the first \r / \n is recommended only
-        self.telnet.write(''.join([cmd, '\n']))
+        self.telnet.write((''.join([cmd, '\n']).encode()))
 
-        msg = self.telnet.read_until('\n', self.timeout)
-        msg = msg.strip('\r\n')
+        msg = self.telnet.read_until('\n'.encode(), self.timeout)
+        msg = msg.decode().strip('\r\n')
         #print("NAD reponded with '%s'" % msg)
 
-        return msg.decode().strip().split('=')[1]
+        return msg.strip().split('=')[1]
         # b'Main.Volume=-12\r will return -12
