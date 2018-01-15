@@ -1,7 +1,11 @@
 # nad_receiver
-Simple python API to connect to NAD receivers through the RS232 interface, and to the NAD D 7050 amplifier via tcp/ip. For the RS232 interface use the NADReceiver class, for the D 7050 use the D7050 class.
+Simple python API to connect to NAD receivers through the RS232 interface, Telnet interface or the TCP/IP interface.
+For the RS232 interface use the NADReceiver class
+For the Telnet interface use the NADReceiverTelnet class
+For the TCP/IP interface use the D7050 class
 
 Note that the RS232 interface is only tested with the NAD T748v2. Commands are implemented based on the T748v2. Those commands should work with more NAD receivers.
+The Telnet interface is only tested with the NAD T787. The Telnet interface share documentation with the RS232 interface and supports the same commands
 The supported commands can easily be extended for receivers which support more commands.
 
 For more information see the official documentation at http://nadelectronics.com/software 
@@ -26,6 +30,13 @@ D7050.select_source('Optical 1')
 D7050.mute()
 D7050.unmute()
 D7050.power_off()
+
+receiver = NADReceiverTelnet(my_nad.local)
+
+receiver.main_volume('+')  #  will increase volume with 1 and return new value
+receiver.main_volume('-')  #  will decrease volume with 1 and return new value
+receiver.main_volume('=', '-40')  # specify dB, will return new value
+print(receiver.main_volume('?'))  # will return current value
 ```
 
 supported commands with supported operators for the RS232 interface

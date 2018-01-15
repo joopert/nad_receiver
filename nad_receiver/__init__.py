@@ -300,12 +300,17 @@ class NADReceiverTelnet(NADReceiver):
 
         # Not possible to test for open Telnet connection
         # let is raise if any issues
-        # Yes, for telnet the first \r / \n is recommended only
-        self.telnet.write((''.join([cmd, '\n']).encode()))
+        # For telnet the first \r / \n is recommended only
+        self.telnet.write((''.join(['\r', cmd, '\n']).encode()))
 
-        msg = self.telnet.read_until('\n'.encode(), self.timeout)
-        msg = msg.decode().strip('\r\n')
-        #print("NAD reponded with '%s'" % msg)
+        found = False
+        while not found:
+            msg = self.telnet.read_until('\n'.encode(), self.timeout)
+            msg = msg.decode().strip('\r\n')
+            #print("NAD reponded with '%s'" % msg)
+            # Wait for the response that equals the requested domain.function
+            if msg.strip().split('=')[0].lower() == '.'.join([domain, function]).lower():
+                found = True
 
         return msg.strip().split('=')[1]
         # b'Main.Volume=-12\r will return -12
