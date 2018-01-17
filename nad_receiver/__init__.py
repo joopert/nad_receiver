@@ -246,7 +246,7 @@ class NADReceiverTCP(object):
     def unmute(self):
         """Unmute the device."""
         self._send(self.CMD_UNMUTE)
- 
+
     def select_source(self, source):
         """Select a source from the list of sources."""
         status = self.status()
@@ -273,8 +273,8 @@ class NADReceiverTelnet(NADReceiver):
         self.timeout = timeout
         # Some versions of the firmware report Main.Model=T787.
         # some versions do not, we want to clear that line
-        msg = self.telnet.read_until('\n'.encode(), self.timeout)
-        #msg.decode().strip().split('=')[1]
+        self.telnet.read_until('\n'.encode(), self.timeout)
+        # Could raise eg. EOFError, UnicodeError, let the client handle it
 
     def __del__(self):
         """
@@ -302,15 +302,28 @@ class NADReceiverTelnet(NADReceiver):
         # let is raise if any issues
         # For telnet the first \r / \n is recommended only
         self.telnet.write((''.join(['\r', cmd, '\n']).encode()))
+        # Could raise eg. socket.error, UnicodeError, let the client handle it
 
-        found = False
-        while not found:
+        # Test 3 x buffer is completely empty
+        # With the default timeout that means a delay at
+        # about 3+ seconds
+        loop = 3
+        while loop:
             msg = self.telnet.read_until('\n'.encode(), self.timeout)
+            # Could raise eg. EOFError, UnicodeError, let the client handle it
+
+            if msg == "":
+                # Nothing in buffer
+                loop -= 1
+                continue
+
             msg = msg.decode().strip('\r\n')
+            # Could raise eg. UnicodeError, let the client handle it
+
             #print("NAD reponded with '%s'" % msg)
             # Wait for the response that equals the requested domain.function
             if msg.strip().split('=')[0].lower() == '.'.join([domain, function]).lower():
-                found = True
+                # b'Main.Volume=-12\r will return -12
+                return msg.strip().split('=')[1]
 
-        return msg.strip().split('=')[1]
-        # b'Main.Volume=-12\r will return -12
+        raise RuntimeError('Failed to read response')
