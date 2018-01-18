@@ -267,20 +267,39 @@ class NADReceiverTelnet(NADReceiver):
 
     Known supported model: Nad T787.
     """
+    def _open_connection(self):
+        if not self.telnet:
+            try:
+                self.telnet = telnetlib.Telnet(self.host, self.port, 3)
+                # Some versions of the firmware report Main.Model=T787.
+                # some versions do not, we want to clear that line
+                self.telnet.read_until('\n'.encode(), self.timeout)
+                # Could raise eg. EOFError, UnicodeError
+            except:
+                return False
+
+        return True
+
+    def _close_connection(self):
+        """
+        Close any telnet session
+        """
+        if self.telnet:
+            self.telnet.close()
+
     def __init__(self, host, port=23, timeout=DEFAULT_TIMEOUT):
-        """Create Telnet connection."""
-        self.telnet = telnetlib.Telnet(host, port, 5)
+        """Create NADTelnet."""
+        self.telnet = None
+        self.host = host
+        self.port = port
         self.timeout = timeout
-        # Some versions of the firmware report Main.Model=T787.
-        # some versions do not, we want to clear that line
-        self.telnet.read_until('\n'.encode(), self.timeout)
-        # Could raise eg. EOFError, UnicodeError, let the client handle it
+        # __init__ must never raise
 
     def __del__(self):
         """
         Close any telnet session
         """
-        self.telnet.close()
+        self._close_connection()
 
     def exec_command(self, domain, function, operator, value=None):
         """
@@ -298,32 +317,33 @@ class NADReceiverTelnet(NADReceiver):
         else:
             raise ValueError('Invalid operator provided %s' % operator)
 
-        # Not possible to test for open Telnet connection
-        # let is raise if any issues
-        # For telnet the first \r / \n is recommended only
-        self.telnet.write((''.join(['\r', cmd, '\n']).encode()))
-        # Could raise eg. socket.error, UnicodeError, let the client handle it
+        if self._open_connection():
+            # For telnet the first \r / \n is recommended only
+            self.telnet.write((''.join(['\r', cmd, '\n']).encode()))
+            # Could raise eg. socket.error, UnicodeError, let the client handle it
 
-        # Test 3 x buffer is completely empty
-        # With the default timeout that means a delay at
-        # about 3+ seconds
-        loop = 3
-        while loop:
-            msg = self.telnet.read_until('\n'.encode(), self.timeout)
-            # Could raise eg. EOFError, UnicodeError, let the client handle it
+            # Test 3 x buffer is completely empty
+            # With the default timeout that means a delay at
+            # about 3+ seconds
+            loop = 3
+            while loop:
+                msg = self.telnet.read_until('\n'.encode(), self.timeout)
+                # Could raise eg. EOFError, UnicodeError, let the client handle it
 
-            if msg == "":
-                # Nothing in buffer
-                loop -= 1
-                continue
+                if msg == "":
+                    # Nothing in buffer
+                    loop -= 1
+                    continue
 
-            msg = msg.decode().strip('\r\n')
-            # Could raise eg. UnicodeError, let the client handle it
+                msg = msg.decode().strip('\r\n')
+                # Could raise eg. UnicodeError, let the client handle it
 
-            #print("NAD reponded with '%s'" % msg)
-            # Wait for the response that equals the requested domain.function
-            if msg.strip().split('=')[0].lower() == '.'.join([domain, function]).lower():
-                # b'Main.Volume=-12\r will return -12
-                return msg.strip().split('=')[1]
+                #print("NAD reponded with '%s'" % msg)
+                # Wait for the response that equals the requested domain.function
+                if msg.strip().split('=')[0].lower() == '.'.join([domain, function]).lower():
+                    # b'Main.Volume=-12\r will return -12
+                    return msg.strip().split('=')[1]
 
-        raise RuntimeError('Failed to read response')
+            raise RuntimeError('Failed to read response')
+
+        raise RuntimeError('Failed to open connection')
