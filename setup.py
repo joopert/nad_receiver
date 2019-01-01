@@ -8,5 +8,5 @@ setup(name='nad_receiver',
       author='joopert',
       license='MIT',
       packages=['nad_receiver'],
-      install_requires=['pyserial==3.2.1'],
+      install_requires=['pyserial>=3.2.1'],
       zip_safe=True)
