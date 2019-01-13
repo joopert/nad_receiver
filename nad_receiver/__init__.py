@@ -11,20 +11,18 @@ from time import sleep
 from nad_receiver.nad_commands import CMDS
 import serial  # pylint: disable=import-error
 import threading
+import time
 import telnetlib
 
 DEFAULT_TIMEOUT = 1
-DEFAULT_WRITE_TIMEOUT = 1
 
 
 class NADReceiver(object):
     """NAD receiver."""
 
-    def __init__(self, serial_port, timeout=DEFAULT_TIMEOUT,
-                 write_timeout=DEFAULT_WRITE_TIMEOUT):
+    def __init__(self, serial_port):
         """Create RS232 connection."""
-        self.ser = serial.Serial(serial_port, baudrate=115200, timeout=timeout,
-                                 write_timeout=write_timeout)
+        self.ser = serial.Serial(serial_port, baudrate=115200)
         self.lock = threading.Lock()
 
     def exec_command(self, domain, function, operator, value=None):
@@ -48,19 +46,24 @@ class NADReceiver(object):
         if not self.ser.is_open:
             self.ser.open()
 
-        self.ser.reset_input_buffer()
-        self.ser.reset_output_buffer()
-        self.lock.acquire()
+        try:
+            self.lock.acquire()
 
-        self.ser.write(''.join(['\r', cmd, '\r']).encode('utf-8'))
+            self.ser.write(''.join(['\r', cmd, '\r']).encode('utf-8'))
+            time.sleep(0.1)
+            # not sure why, but otherwise it is not ready yet to do the read.
 
-        self.ser.read(1)  # NAD uses the prefix and suffix \r.
-        # With this we read the first \r and skip it
-        msg = self.ser.read_until(bytes('\r'.encode()))
-        self.lock.release()
+            msg = self.ser.read(self.ser.in_waiting)
+            
+            try:
+                msg = msg.decode()[1:-1]
+                msg = msg.split('=')[1]
+                return msg
+            except IndexError:
+                pass
 
-        return msg.decode().strip().split('=')[1]
-        # b'Main.Volume=-12\r will return -12
+        finally:
+            self.lock.release()
 
     def main_dimmer(self, operator, value=None):
         """Execute Main.Dimmer."""
@@ -80,7 +83,14 @@ class NADReceiver(object):
 
         Returns int
         """
-        return int(self.exec_command('main', 'volume', operator, value))
+        try:
+            res = int(self.exec_command('main', 'volume', operator, value))
+            return res
+
+        except (ValueError, TypeError):
+            pass
+
+        return None
 
     def main_ir(self, operator, value=None):
         """Execute Main.IR."""
@@ -100,7 +110,13 @@ class NADReceiver(object):
 
         Returns int
         """
-        return int(self.exec_command('main', 'source', operator, value))
+        try:
+            source = int(self.exec_command('main', 'source', operator, value))
+            return source
+        except (ValueError, TypeError):
+            pass
+
+        return None
 
     def main_version(self, operator, value=None):
         """Execute Main.Version."""
