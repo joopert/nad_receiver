@@ -185,11 +185,13 @@ class NADReceiverTCP(object):
         sock = None
         for tries in range(0, 3):
             try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((self._host, self.PORT))
+                sock = socket.create_connection((self._host, self.PORT), timeout=5)
                 break
+            except socket.timeout:
+                print("Socket connection timed out.")
+                return
             except (ConnectionError, BrokenPipeError):
-                if tries == 3:
+                if tries == 2:
                     print("socket connect failed.")
                     return
                 sleep(0.1)
