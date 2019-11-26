@@ -54,7 +54,7 @@ class NADReceiver(object):
             # not sure why, but otherwise it is not ready yet to do the read.
 
             msg = self.ser.read(self.ser.in_waiting)
-            
+
             try:
                 msg = msg.decode()[1:-1]
                 msg = msg.split('=')[1]
@@ -84,7 +84,8 @@ class NADReceiver(object):
         Returns int
         """
         try:
-            res = int(self.exec_command('main', 'volume', operator, value))
+            res = int(round(
+                self.exec_command('main', 'volume', operator, value)))
             return res
 
         except (ValueError, TypeError):
