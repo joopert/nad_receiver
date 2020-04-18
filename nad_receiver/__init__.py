@@ -32,7 +32,7 @@ class NADReceiver(object):
         The receiver will always return a value, also when setting a value.
         """
         if operator in CMDS[domain][function]['supported_operators']:
-            if operator is '=' and value is None:
+            if operator == '=' and value is None:
                 raise ValueError('No value provided')
 
             if value is None:
@@ -325,7 +325,7 @@ class NADReceiverTelnet(NADReceiver):
         Write a command to the receiver and read the value it returns.
         """
         if operator in CMDS[domain][function]['supported_operators']:
-            if operator is '=' and value is None:
+            if operator == '=' and value is None:
                 raise ValueError('No value provided')
 
             if value is None:
