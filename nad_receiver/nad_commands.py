@@ -3,7 +3,10 @@ Commands and operators used by NAD.
 
 CMDS[domain][function]
 """
-CMDS = {
+
+from typing import Dict, Iterable, Union
+
+CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
     'main':
         {
             'dimmer':
