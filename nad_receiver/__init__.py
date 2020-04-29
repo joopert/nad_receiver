@@ -56,15 +56,14 @@ class NADReceiver(object):
         """Execute Main.Power."""
         return self.exec_command('main', 'power', operator, value)
 
-    def main_volume(self, operator, value=None):
+    def main_volume(self, operator: str, value=None) -> float:
         """
         Execute Main.Volume.
 
-        Returns int
+        Returns float
         """
         try:
-            res = int(round(
-                self.exec_command('main', 'volume', operator, value)))
+            res = float(self.exec_command('main', 'volume', operator, value))
             return res
 
         except (ValueError, TypeError):
