@@ -1,10 +1,7 @@
 import abc
-import codecs
 import serial  # type: ignore
 import telnetlib
 import threading
-import time
-import socket
 
 from typing import Optional
 
@@ -47,7 +44,8 @@ class SerialPortTransport:
 
             self.ser.write(f"\r{command}\r".encode("utf-8"))
             # To get complete messages, always read until we get '\r'
-            # Messages will be of the form '\rMESSAGE\r' which pyserial handles nicely
+            # Messages will be of the form '\rMESSAGE\r' which
+            # pyserial handles nicely
             msg = self.ser.read_until("\r")
             assert isinstance(msg, bytes)
             return msg.strip().decode()

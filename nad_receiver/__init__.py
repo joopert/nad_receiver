@@ -9,11 +9,11 @@ import codecs
 import socket
 from time import sleep
 from nad_receiver.nad_commands import CMDS
-from nad_receiver.nad_transport import SerialPortTransport, TelnetTransport, DEFAULT_TIMEOUT
-import threading
+from nad_receiver.nad_transport import (SerialPortTransport, TelnetTransport,
+                                        DEFAULT_TIMEOUT)
 
 
-class NADReceiver(object):
+class NADReceiver:
     """NAD receiver."""
 
     def __init__(self, serial_port):
@@ -155,7 +155,7 @@ class NADReceiverTelnet(NADReceiver):
         self.transport = TelnetTransport(host, port, timeout)
 
 
-class NADReceiverTCP(object):
+class NADReceiverTCP:
     """
     Support NAD amplifiers that use tcp for communication.
 
@@ -193,7 +193,8 @@ class NADReceiverTCP(object):
         sock = None
         for tries in range(0, 3):
             try:
-                sock = socket.create_connection((self._host, self.PORT), timeout=5)
+                sock = socket.create_connection((self._host, self.PORT),
+                                                timeout=5)
                 break
             except socket.timeout:
                 print("Socket connection timed out.")
@@ -249,7 +250,8 @@ class NADReceiverTCP(object):
     def power_off(self):
         """Power the device off."""
         status = self.status()
-        if status['power']:  # Setting power off when it is already off can cause hangs
+        if status['power']:
+            #  Setting power off when it is already off can cause hangs
             self._send(self.CMD_POWERSAVE + self.CMD_OFF)
 
     def power_on(self):
@@ -277,9 +279,11 @@ class NADReceiverTCP(object):
         """Select a source from the list of sources."""
         status = self.status()
         if status['power']:  # Changing source when off may hang NAD7050
-            if status['source'] != source:  # Setting the source to the current source will hang the NAD7050
+            # Setting the source to the current source will hang the NAD7050
+            if status['source'] != source:
                 if source in self.SOURCES:
-                    self._send(self.CMD_SOURCE + self.SOURCES[source], read_reply=True)
+                    self._send(self.CMD_SOURCE + self.SOURCES[source],
+                               read_reply=True)
 
     def available_sources(self):
         """Return a list of available sources."""
