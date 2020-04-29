@@ -9,12 +9,8 @@ import codecs
 import socket
 from time import sleep
 from nad_receiver.nad_commands import CMDS
-import serial  # pylint: disable=import-error
+from nad_receiver.nad_transport import SerialPortTransport, TelnetTransport, DEFAULT_TIMEOUT
 import threading
-import time
-import telnetlib
-
-DEFAULT_TIMEOUT = 1
 
 
 class NADReceiver(object):
@@ -22,8 +18,7 @@ class NADReceiver(object):
 
     def __init__(self, serial_port):
         """Create RS232 connection."""
-        self.ser = serial.Serial(serial_port, baudrate=115200)
-        self.lock = threading.Lock()
+        self.transport = SerialPortTransport(serial_port)
 
     def exec_command(self, domain, function, operator, value=None):
         """
@@ -43,27 +38,11 @@ class NADReceiver(object):
         else:
             raise ValueError('Invalid operator provided %s' % operator)
 
-        if not self.ser.is_open:
-            self.ser.open()
-
         try:
-            self.lock.acquire()
-
-            self.ser.write(''.join(['\r', cmd, '\r']).encode('utf-8'))
-            time.sleep(0.1)
-            # not sure why, but otherwise it is not ready yet to do the read.
-
-            msg = self.ser.read(self.ser.in_waiting)
-
-            try:
-                msg = msg.decode()[1:-1]
-                msg = msg.split('=')[1]
-                return msg
-            except IndexError:
-                pass
-
-        finally:
-            self.lock.release()
+            msg = self.transport.communicate(cmd)
+            return msg.split('=')[1]
+        except IndexError:
+            pass
 
     def main_dimmer(self, operator, value=None):
         """Execute Main.Dimmer."""
@@ -105,6 +84,18 @@ class NADReceiver(object):
         """Execute Main.Sleep."""
         return self.exec_command('main', 'sleep', operator, value)
 
+    def main_tape_monitor(self, operator, value=None):
+        """Execute Main.Tape1."""
+        return self.exec_command('main', 'tape_monitor', operator, value)
+
+    def main_speaker_a(self, operator, value=None):
+        """Execute Main.SpeakerA."""
+        return self.exec_command('main', 'speaker_a', operator, value)
+
+    def main_speaker_b(self, operator, value=None):
+        """Execute Main.SpeakerB."""
+        return self.exec_command('main', 'speaker_b', operator, value)
+
     def main_source(self, operator, value=None):
         """
         Execute Main.Source.
@@ -122,6 +113,10 @@ class NADReceiver(object):
     def main_version(self, operator, value=None):
         """Execute Main.Version."""
         return self.exec_command('main', 'version', operator, value)
+
+    def main_model(self, operator, value=None):
+        """Execute Main.Model."""
+        return self.exec_command('main', 'model', operator, value)
 
     def tuner_am_frequency(self, operator, value=None):
         """Execute Tuner.AM.Frequence."""
@@ -146,6 +141,19 @@ class NADReceiver(object):
     def tuner_fm_preset(self, operator, value=None):
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
+
+
+class NADReceiverTelnet(NADReceiver):
+    """
+    Support NAD amplifiers that use telnet for communication.
+    Supports all commands from the RS232 base class
+
+    Known supported model: Nad T787.
+    """
+
+    def __init__(self, host, port=23, timeout=DEFAULT_TIMEOUT):
+        """Create NADTelnet."""
+        self.transport = TelnetTransport(host, port, timeout)
 
 
 class NADReceiverTCP(object):
@@ -277,92 +285,3 @@ class NADReceiverTCP(object):
     def available_sources(self):
         """Return a list of available sources."""
         return list(self.SOURCES.keys())
-
-
-class NADReceiverTelnet(NADReceiver):
-    """
-    Support NAD amplifiers that use telnet for communication.
-    Supports all commands from the RS232 base class
-
-    Known supported model: Nad T787.
-    """
-    def _open_connection(self):
-        if not self.telnet:
-            try:
-                self.telnet = telnetlib.Telnet(self.host, self.port, 3)
-                # Some versions of the firmware report Main.Model=T787.
-                # some versions do not, we want to clear that line
-                self.telnet.read_until('\n'.encode(), self.timeout)
-                # Could raise eg. EOFError, UnicodeError
-            except:
-                return False
-
-        return True
-
-    def _close_connection(self):
-        """
-        Close any telnet session
-        """
-        if self.telnet:
-            self.telnet.close()
-
-    def __init__(self, host, port=23, timeout=DEFAULT_TIMEOUT):
-        """Create NADTelnet."""
-        self.telnet = None
-        self.host = host
-        self.port = port
-        self.timeout = timeout
-        # __init__ must never raise
-
-    def __del__(self):
-        """
-        Close any telnet session
-        """
-        self._close_connection()
-
-    def exec_command(self, domain, function, operator, value=None):
-        """
-        Write a command to the receiver and read the value it returns.
-        """
-        if operator in CMDS[domain][function]['supported_operators']:
-            if operator == '=' and value is None:
-                raise ValueError('No value provided')
-
-            if value is None:
-                cmd = ''.join([CMDS[domain][function]['cmd'], operator])
-            else:
-                cmd = ''.join(
-                    [CMDS[domain][function]['cmd'], operator, str(value)])
-        else:
-            raise ValueError('Invalid operator provided %s' % operator)
-
-        if self._open_connection():
-            # For telnet the first \r / \n is recommended only
-            self.telnet.write((''.join(['\r', cmd, '\n']).encode()))
-            # Could raise eg. socket.error, UnicodeError, let the client handle it
-
-            # Test 3 x buffer is completely empty
-            # With the default timeout that means a delay at
-            # about 3+ seconds
-            loop = 3
-            while loop:
-                msg = self.telnet.read_until('\n'.encode(), self.timeout)
-                # Could raise eg. EOFError, UnicodeError, let the client handle it
-
-                if msg == "":
-                    # Nothing in buffer
-                    loop -= 1
-                    continue
-
-                msg = msg.decode().strip('\r\n')
-                # Could raise eg. UnicodeError, let the client handle it
-
-                #print("NAD reponded with '%s'" % msg)
-                # Wait for the response that equals the requested domain.function
-                if msg.strip().split('=')[0].lower() == '.'.join([domain, function]).lower():
-                    # b'Main.Volume=-12\r will return -12
-                    return msg.strip().split('=')[1]
-
-            raise RuntimeError('Failed to read response')
-
-        raise RuntimeError('Failed to open connection')
