@@ -65,6 +65,7 @@ class TelnetTransport:
         self.host = host
         self.port = port
         self.timeout = timeout
+        self.lock = threading.Lock()
 
     def _open_connection(self) -> None:
         if not self.telnet:
@@ -78,9 +79,10 @@ class TelnetTransport:
                 pass
 
     def communicate(self, cmd: str) -> str:
-        self._open_connection()
-        assert self.telnet
+        with self.lock:
+            self._open_connection()
+            assert self.telnet
 
-        self.telnet.write(f"\r{cmd}\r".encode())
-        msg = self.telnet.read_until(b"\r", self.timeout)
-        return msg.strip().decode()
+            self.telnet.write(f"\r{cmd}\r".encode())
+            msg = self.telnet.read_until(b"\r", self.timeout)
+            return msg.strip().decode()
