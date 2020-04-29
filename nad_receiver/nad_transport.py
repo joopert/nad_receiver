@@ -72,7 +72,9 @@ class TelnetTransport:
                 self.telnet = telnetlib.Telnet(self.host, self.port, 3)
                 # Some versions of the firmware report Main.Model=T787.
                 # some versions do not, we want to clear that line
+                self.telnet.read_lazy()
                 self.telnet.read_until("\n".encode(), self.timeout)
+                self.telnet.read_lazy()
                 # Could raise eg. EOFError, UnicodeError
             except (EOFError, UnicodeError):
                 pass
