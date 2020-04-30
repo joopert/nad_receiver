@@ -8,9 +8,19 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 import codecs
 import socket
 from time import sleep
+from typing import Any, Optional
+
 from nad_receiver.nad_commands import CMDS
-from nad_receiver.nad_transport import (SerialPortTransport, TelnetTransport,
+from nad_receiver.nad_transport import (NadTransport, SerialPortTransport, TelnetTransport,
                                         DEFAULT_TIMEOUT)
+
+import logging
+
+
+logging.basicConfig()
+_LOGGER = logging.getLogger("nad_receiver")
+# Uncomment this line to see all communication with the device:
+# _LOGGER.setLevel(logging.DEBUG)
 
 
 class NADReceiver:
@@ -40,6 +50,7 @@ class NADReceiver:
 
         try:
             msg = self.transport.communicate(cmd)
+            _LOGGER.debug(f"sent: '{cmd}' reply: '{msg}'")
             return msg.split('=')[1]
         except IndexError:
             pass
@@ -141,6 +152,87 @@ class NADReceiver:
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
 
+    def __getattr__(self, name: str) -> Any:
+        """Dynamically allow accessing domain, command and operator based on the command dict.
+
+        This allows directly using main.power.set('On') without needing any explicit functions
+        to be added. All that is needed for maintenance is to keep the dict in nad_commands.py
+        up to date.
+        """
+        class _CallHandler:
+            _operator_map = {
+                "get": "?",
+                "set": "=",
+                "increase": "+",
+                "decrease": "-",
+            }
+
+            def __init__(
+                self,
+                transport: NadTransport,
+                domain: str,
+                command: Optional[str] = None,
+                op: Optional[str] = None,
+            ):
+                self._transport = transport
+                self._domain = domain
+                self._command = command
+                self._op = op
+
+            def __repr__(self) -> str:
+                command = f".{self._command}" if self._command else ""
+                op = f".{self._op}" if self._op else ""
+                return f"NADReceiver.{self._domain}{command}{op}"
+
+            def __getattr__(self, attr: str) -> Any:
+                if not self._command:
+                    if attr in CMDS.get(self._domain):  # type: ignore
+                        return _CallHandler(self._transport, self._domain, attr)
+                    raise AttributeError(f"{self} has no attribute '{attr}'")
+                if self._op:
+                    raise AttributeError(f"{self} has no attribute {attr}")
+                op = _CallHandler._operator_map.get(attr, None)
+                if not op:
+                    raise AttributeError(f"{self} has no function {attr}")
+                return _CallHandler(self._transport, self._domain, self._command, attr)
+
+            def __call__(self, value: Optional[str] = None) -> Optional[str]:
+                """Executes the command.
+
+                Returns a string when possible or None.
+                Throws a ValueError in case the command was not successful."""
+                if not self._op:
+                    raise TypeError(f"{self} object is not callable.")
+
+                function_data = CMDS.get(self._domain).get(self._command)  # type: ignore
+                op = _CallHandler._operator_map.get(self._op, None)
+                if not op or op not in function_data.get("supported_operators"):  # type: ignore
+                    raise TypeError(
+                        f"{self} does not support '{self._op}', try one of {_CallHandler._operator_map.keys()}"
+                    )
+
+                cmd = f"{function_data.get('cmd')}{op}{value if value else ''}"  # type: ignore
+                reply = self._transport.communicate(cmd)
+                _LOGGER.debug(f"command: {cmd} reply: {reply}")
+                if not reply:
+                    raise ValueError(f"Did not receive reply from receiver for {self}.")
+                if reply:
+                    # Try to return the new value
+                    index = reply.find("=")
+                    if index < 0:
+                        if reply == cmd:
+                            # On some models, no value, but the command is returned.
+                            # That means success, but the receiver cannot report the state.
+                            return None
+                        raise ValueError(
+                            f"Unexpected reply from receiver for {self}: {reply}."
+                        )
+                    reply = reply[index + 1 :]
+                return reply
+
+        if name not in CMDS:
+            raise AttributeError(f"{self} has no attribute {name}")
+        return _CallHandler(self.transport, name)
 
 class NADReceiverTelnet(NADReceiver):
     """
