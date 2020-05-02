@@ -54,20 +54,20 @@ def test_NAD_C_356BE():
     # CD Tuner Video Disc Ipod Tape2 Aux
     # My Amp:
     # CD Tuner Disc/MDC Aux Tape2 MP
-    ### FIXME: Protocol V2 represents sources as strings, we should get these:
-    # assert receiver.main_source("=", "AUX") == "AUX"
-    # assert receiver.main_source("?") == "AUX"
-    # assert receiver.main_source("=", "CD") == "CD"
-    # assert receiver.main_source("?") == "CD"
-    # assert receiver.main_source("+") == "TUNER"
-    # assert receiver.main_source("-") == "CD"
-    # assert receiver.main_source("+") == "TUNER"
-    # assert receiver.main_source("+") == "DISC/MDC"
-    # assert receiver.main_source("+") == "AUX"
-    # assert receiver.main_source("+") == "TAPE2"
-    # assert receiver.main_source("+") == "MP"
-    # assert receiver.main_source("+") == "CD"
-    # assert receiver.main_source("-") == "MP"
+    # Protocol V2 represents sources as strings, we should get these:
+    assert receiver.main_source("=", "AUX") == "AUX"
+    assert receiver.main_source("?") == "AUX"
+    assert receiver.main_source("=", "CD") == "CD"
+    assert receiver.main_source("?") == "CD"
+    assert receiver.main_source("+") == "TUNER"
+    assert receiver.main_source("-") == "CD"
+    assert receiver.main_source("+") == "TUNER"
+    assert receiver.main_source("+") == "DISC/MDC"
+    assert receiver.main_source("+") == "AUX"
+    assert receiver.main_source("+") == "TAPE2"
+    assert receiver.main_source("+") == "MP"
+    assert receiver.main_source("+") == "CD"
+    assert receiver.main_source("-") == "MP"
 
     # Tape monitor / tape 1 is independent of sources
     assert receiver.main_tape_monitor("=", OFF) == OFF

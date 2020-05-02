@@ -110,13 +110,15 @@ class NADReceiver:
 
         Returns int
         """
+        source = self.exec_command('main', 'source', operator, value)
         try:
-            source = int(self.exec_command('main', 'source', operator, value))
+            # try to return as integer, some receivers return numbers
+            return int(source)
+        except ValueError:
+            # return source as string
             return source
-        except (ValueError, TypeError):
-            pass
-
-        return None
+        except TypeError:
+            return None
 
     def main_version(self, operator, value=None):
         """Execute Main.Version."""
