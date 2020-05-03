@@ -222,24 +222,21 @@ class NADReceiverTCP:
                 sleep(0.1)
         if not sock:
             return None
-        sock.send(codecs.decode(message.encode(), encoding='hex_codec'))
-        if read_reply:
-            sleep(0.1)
-            reply = ''
-            tries = 0
-            max_tries = 20
-            while len(reply) < len(message) and tries < max_tries:
-                try:
-                    reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
-                        .decode("utf-8")
-                except (ConnectionError, BrokenPipeError):
-                    pass
-                tries += 1
-            sock.close()
-            if tries >= max_tries:
-                return None
-            return reply
-        sock.close()
+        with sock:
+            sock.send(codecs.decode(message.encode(), encoding='hex_codec'))
+            if read_reply:
+                sleep(0.1)
+                reply = ''
+                tries = 0
+                max_tries = 20
+                while len(reply) < len(message) and tries < max_tries:
+                    try:
+                        reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
+                            .decode("utf-8")
+                        return reply
+                    except (ConnectionError, BrokenPipeError):
+                        pass
+                    tries += 1
         return None
 
     def status(self) -> Optional[Dict[str, Any]]:
