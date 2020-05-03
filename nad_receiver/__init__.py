@@ -8,6 +8,7 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 import codecs
 import socket
 from time import sleep
+from typing import Optional
 from nad_receiver.nad_commands import CMDS
 from nad_receiver.nad_transport import (SerialPortTransport, TelnetTransport,
                                         DEFAULT_TIMEOUT)
@@ -24,7 +25,7 @@ _LOGGER = logging.getLogger("nad_receiver")
 class NADReceiver:
     """NAD receiver."""
 
-    def __init__(self, serial_port):
+    def __init__(self, serial_port) -> None:
         """Create RS232 connection."""
         self.transport = SerialPortTransport(serial_port)
 
@@ -65,7 +66,7 @@ class NADReceiver:
         """Execute Main.Power."""
         return self.exec_command('main', 'power', operator, value)
 
-    def main_volume(self, operator: str, value=None) -> float:
+    def main_volume(self, operator: str, value=None) -> Optional[float]:
         """
         Execute Main.Volume.
 
