@@ -8,9 +8,9 @@ Functions can be found on the NAD website: http://nadelectronics.com/software
 import codecs
 import socket
 from time import sleep
-from typing import Optional
+from typing import Any, Dict, Iterable, Optional, Union
 from nad_receiver.nad_commands import CMDS
-from nad_receiver.nad_transport import (SerialPortTransport, TelnetTransport,
+from nad_receiver.nad_transport import (NadTransport, SerialPortTransport, TelnetTransport,
                                         DEFAULT_TIMEOUT)
 
 import logging
@@ -24,12 +24,13 @@ _LOGGER = logging.getLogger("nad_receiver")
 
 class NADReceiver:
     """NAD receiver."""
+    transport: NadTransport
 
-    def __init__(self, serial_port) -> None:
+    def __init__(self, serial_port: str) -> None:
         """Create RS232 connection."""
         self.transport = SerialPortTransport(serial_port)
 
-    def exec_command(self, domain, function, operator, value=None):
+    def exec_command(self, domain: str, function: str, operator: str, value: Optional[str] =None) -> Optional[str]:
         """
         Write a command to the receiver and read the value it returns.
 
@@ -39,11 +40,10 @@ class NADReceiver:
             if operator == '=' and value is None:
                 raise ValueError('No value provided')
 
-            if value is None:
-                cmd = ''.join([CMDS[domain][function]['cmd'], operator])
-            else:
-                cmd = ''.join(
-                    [CMDS[domain][function]['cmd'], operator, str(value)])
+            cmd = ''.join([CMDS[domain][function]['cmd'], operator])  # type: ignore
+            assert isinstance(cmd, str)
+            if value:
+                cmd = cmd + value
         else:
             raise ValueError('Invalid operator provided %s' % operator)
 
@@ -53,103 +53,107 @@ class NADReceiver:
             return msg.split('=')[1]
         except IndexError:
             pass
+        return None
 
-    def main_dimmer(self, operator, value=None):
+    def main_dimmer(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Dimmer."""
         return self.exec_command('main', 'dimmer', operator, value)
 
-    def main_mute(self, operator, value=None):
+    def main_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Mute."""
         return self.exec_command('main', 'mute', operator, value)
 
-    def main_power(self, operator, value=None):
+    def main_power(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Power."""
         return self.exec_command('main', 'power', operator, value)
 
-    def main_volume(self, operator: str, value=None) -> Optional[float]:
+    def main_volume(self, operator: str, value: Optional[str] =None) -> Optional[float]:
         """
         Execute Main.Volume.
 
         Returns float
         """
+        volume = self.exec_command('main', 'volume', operator, value)
+        if volume is None:
+            return None
         try:
-            res = float(self.exec_command('main', 'volume', operator, value))
+            res = float(volume)
             return res
-
-        except (ValueError, TypeError):
+        except (ValueError):
             pass
 
         return None
 
-    def main_ir(self, operator, value=None):
+    def main_ir(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.IR."""
         return self.exec_command('main', 'ir', operator, value)
 
-    def main_listeningmode(self, operator, value=None):
+    def main_listeningmode(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.ListeningMode."""
         return self.exec_command('main', 'listeningmode', operator, value)
 
-    def main_sleep(self, operator, value=None):
+    def main_sleep(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Sleep."""
         return self.exec_command('main', 'sleep', operator, value)
 
-    def main_tape_monitor(self, operator, value=None):
+    def main_tape_monitor(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Tape1."""
         return self.exec_command('main', 'tape_monitor', operator, value)
 
-    def main_speaker_a(self, operator, value=None):
+    def main_speaker_a(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.SpeakerA."""
         return self.exec_command('main', 'speaker_a', operator, value)
 
-    def main_speaker_b(self, operator, value=None):
+    def main_speaker_b(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.SpeakerB."""
         return self.exec_command('main', 'speaker_b', operator, value)
 
-    def main_source(self, operator, value=None):
+    def main_source(self, operator: str, value: Optional[str]=None) -> Optional[Union[int, str]]:
         """
         Execute Main.Source.
 
         Returns int
         """
         source = self.exec_command('main', 'source', operator, value)
+        if source is None:
+            return None
         try:
             # try to return as integer, some receivers return numbers
             return int(source)
         except ValueError:
             # return source as string
             return source
-        except TypeError:
-            return None
+        return None
 
-    def main_version(self, operator, value=None):
+    def main_version(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Version."""
         return self.exec_command('main', 'version', operator, value)
 
-    def main_model(self, operator, value=None):
+    def main_model(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Model."""
         return self.exec_command('main', 'model', operator, value)
 
-    def tuner_am_frequency(self, operator, value=None):
+    def tuner_am_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.AM.Frequence."""
         return self.exec_command('tuner', 'am_frequency', operator, value)
 
-    def tuner_am_preset(self, operator, value=None):
+    def tuner_am_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.AM.Preset."""
         return self.exec_command('tuner', 'am_preset', operator, value)
 
-    def tuner_band(self, operator, value=None):
+    def tuner_band(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.Band."""
         return self.exec_command('tuner', 'band', operator, value)
 
-    def tuner_fm_frequency(self, operator, value=None):
+    def tuner_fm_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Frequence."""
         return self.exec_command('tuner', 'fm_frequency', operator, value)
 
-    def tuner_fm_mute(self, operator, value=None):
+    def tuner_fm_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Mute."""
         return self.exec_command('tuner', 'fm_mute', operator, value)
 
-    def tuner_fm_preset(self, operator, value=None):
+    def tuner_fm_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
 
@@ -162,7 +166,7 @@ class NADReceiverTelnet(NADReceiver):
     Known supported model: Nad T787.
     """
 
-    def __init__(self, host, port=23, timeout=DEFAULT_TIMEOUT):
+    def __init__(self, host: str, port: int =23, timeout: int =DEFAULT_TIMEOUT):
         """Create NADTelnet."""
         self.transport = TelnetTransport(host, port, timeout)
 
@@ -196,13 +200,13 @@ class NADReceiverTCP:
     PORT = 50001
     BUFFERSIZE = 1024
 
-    def __init__(self, host):
+    def __init__(self, host: str) -> None:
         """Setup globals."""
         self._host = host
 
-    def _send(self, message, read_reply=False):
+    def _send(self, message: str, read_reply: bool =False) -> Optional[str]:
         """Send a command string to the amplifier."""
-        sock = None
+        sock: socket.socket
         for tries in range(0, 3):
             try:
                 sock = socket.create_connection((self._host, self.PORT),
@@ -210,13 +214,15 @@ class NADReceiverTCP:
                 break
             except socket.timeout:
                 print("Socket connection timed out.")
-                return
+                return None
             except (ConnectionError, BrokenPipeError):
                 if tries == 2:
                     print("socket connect failed.")
-                    return
+                    return None
                 sleep(0.1)
-        sock.send(codecs.decode(message, 'hex_codec'))
+        if not sock:
+            return None
+        sock.send(codecs.decode(message.encode(), encoding='hex_codec'))
         if read_reply:
             sleep(0.1)
             reply = ''
@@ -231,11 +237,12 @@ class NADReceiverTCP:
                 tries += 1
             sock.close()
             if tries >= max_tries:
-                return
+                return None
             return reply
         sock.close()
+        return None
 
-    def status(self):
+    def status(self) -> Optional[Dict[str, Any]]:
         """
         Return the status of the device.
 
@@ -247,7 +254,7 @@ class NADReceiverTCP:
                                self.POLL_MUTED +
                                self.POLL_SOURCE, read_reply=True)
         if nad_reply is None:
-            return
+            return None
 
         # split reply into parts of 10 characters
         num_chars = 10
@@ -259,37 +266,43 @@ class NADReceiverTCP:
                 'muted': nad_status[2][-2:] == '01',
                 'source': self.SOURCES_REVERSED[nad_status[3][-2:]]}
 
-    def power_off(self):
+    def power_off(self) -> None:
         """Power the device off."""
         status = self.status()
+        if not status:
+            return None
         if status['power']:
             #  Setting power off when it is already off can cause hangs
             self._send(self.CMD_POWERSAVE + self.CMD_OFF)
 
-    def power_on(self):
+    def power_on(self) -> None:
         """Power the device on."""
         status = self.status()
+        if not status:
+            return None
         if not status['power']:
             self._send(self.CMD_ON, read_reply=True)
             sleep(0.5)  # Give NAD7050 some time before next command
 
-    def set_volume(self, volume):
+    def set_volume(self, volume: int) -> None:
         """Set volume level of the device. Accepts integer values 0-200."""
         if 0 <= volume <= 200:
-            volume = format(volume, "02x")  # Convert to hex
-            self._send(self.CMD_VOLUME + volume)
+            volume_hex = format(volume, "02x")  # Convert to hex
+            self._send(self.CMD_VOLUME + volume_hex)
 
-    def mute(self):
+    def mute(self) -> None:
         """Mute the device."""
         self._send(self.CMD_MUTE, read_reply=True)
 
-    def unmute(self):
+    def unmute(self) -> None:
         """Unmute the device."""
         self._send(self.CMD_UNMUTE)
 
-    def select_source(self, source):
+    def select_source(self, source: str) -> None:
         """Select a source from the list of sources."""
         status = self.status()
+        if not status:
+            return None
         if status['power']:  # Changing source when off may hang NAD7050
             # Setting the source to the current source will hang the NAD7050
             if status['source'] != source:
@@ -297,6 +310,6 @@ class NADReceiverTCP:
                     self._send(self.CMD_SOURCE + self.SOURCES[source],
                                read_reply=True)
 
-    def available_sources(self):
+    def available_sources(self) -> Iterable[str]:
         """Return a list of available sources."""
         return list(self.SOURCES.keys())

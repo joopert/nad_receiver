@@ -20,7 +20,7 @@ class NadTransport(abc.ABC):
         pass
 
 
-class SerialPortTransport:
+class SerialPortTransport(NadTransport):
     """Transport for NAD protocol over RS-232."""
 
     def __init__(self, serial_port: str) -> None:
@@ -53,7 +53,7 @@ class SerialPortTransport:
             return msg.strip().decode()
 
 
-class TelnetTransport:
+class TelnetTransport(NadTransport):
     """
     Support NAD amplifiers that use telnet for communication.
     Supports all commands from the RS232 base class
