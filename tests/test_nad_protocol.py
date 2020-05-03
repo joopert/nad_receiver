@@ -10,11 +10,11 @@ OFF = "Off"
 
 class Fake_NAD_C_356BE(nad_receiver.NADReceiver):
     """NAD Receiver with fake transport for testing."""
-    def __init__(self):
+    def __init__(self) -> None:
         self.transport = Fake_NAD_C_356BE_Transport()
 
 
-def test_NAD_C_356BE():
+def test_NAD_C_356BE() -> None:
     # This test can be run with the real amplifier, just instantiate
     # the real transport instead of the fake one
     receiver = Fake_NAD_C_356BE()
