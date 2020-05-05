@@ -2,8 +2,8 @@ from nad_receiver.nad_transport import NadTransport
 import re
 from typing import Callable, Optional
 
-class Fake_NAD_C_356BE_Transport(NadTransport):
-    """A fake NAD C 356BE device.
+class Fake_NAD_Transport(NadTransport):
+    """A fake NAD device.
 
     Behaves just like the real device (although faster).
     This is convenient for testing or when integrating this
@@ -18,10 +18,10 @@ class Fake_NAD_C_356BE_Transport(NadTransport):
             "SpeakerA": True,
             "SpeakerB": False,
         }
-        self._model = "C356BEE"
-        self._version = "V1.02"
-        self._sources = "CD TUNER DISC/MDC AUX TAPE2 MP".split()
-        self._source = "CD"
+        self._model = "FAKE"
+        self._version = "FAKE"
+        self._sources = ["FAKE"]
+        self._source = "FAKE"
         self._command_regex = re.compile(
             r"(?P<component>\w+)\.(?P<function>\w+)(?P<operator>[=\?\+\-])(?P<value>.*)"
         )
@@ -84,3 +84,24 @@ class Fake_NAD_C_356BE_Transport(NadTransport):
             return response(self._source)
 
         return ""
+
+
+class Fake_NAD_C_356BE_Transport(Fake_NAD_Transport):
+    """A fake NAD C 356BE device.
+    """
+
+    def __init__(self) -> None:
+        self._toggle = {
+            "Power": False,
+            "Mute": False,
+            "Tape1": False,
+            "SpeakerA": True,
+            "SpeakerB": False,
+        }
+        self._model = "C356BEE"
+        self._version = "V1.02"
+        self._sources = "CD TUNER DISC/MDC AUX TAPE2 MP".split()
+        self._source = "CD"
+        self._command_regex = re.compile(
+            r"(?P<component>\w+)\.(?P<function>\w+)(?P<operator>[=\?\+\-])(?P<value>.*)"
+        )
