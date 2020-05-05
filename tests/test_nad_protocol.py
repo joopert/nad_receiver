@@ -14,10 +14,11 @@ class Fake_NAD_C_356BE(nad_receiver.NADReceiver):
         self.transport = Fake_NAD_C_356BE_Transport()
 
 
-def test_NAD_C_356BE() -> None:
-    # This test can be run with the real amplifier, just instantiate
-    # the real transport instead of the fake one
-    receiver = Fake_NAD_C_356BE()
+# The NAD Units to test
+NAD_Units = [Fake_NAD_C_356BE()]
+
+
+def _test_commands(receiver) -> None:
     assert receiver.main_power("?") in (ON, OFF)
 
     # switch off
@@ -88,3 +89,11 @@ def test_NAD_C_356BE() -> None:
     assert receiver.main_speaker_b("?") == OFF
 
     assert receiver.main_power("=", OFF) == OFF
+
+
+
+def test_protocol() -> None:
+    # This test can be run with the real amplifier, just instantiate
+    # the real transport instead of the fake one
+    for receiver in NAD_Units:
+        _test_commands(receiver)
