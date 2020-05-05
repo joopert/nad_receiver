@@ -1,4 +1,5 @@
 import re
+import operator
 import pytest  # type: ignore
 
 import nad_receiver
@@ -14,86 +15,92 @@ class Fake_NAD_C_356BE(nad_receiver.NADReceiver):
         self.transport = Fake_NAD_C_356BE_Transport()
 
 
+SerialTests=[
+("receiver.main_power", "=", OFF, operator.eq),
+("receiver.main_power", "?", OFF, operator.eq),
+("receiver.main_power", "+", ON, operator.eq),
+("receiver.main_power", "+", OFF, operator.eq),
+("receiver.main_power", "?", OFF, operator.eq),
+("receiver.main_mute", "?", None, operator.is_),
+
+("receiver.main_power", "=", ON, operator.eq),
+("receiver.main_power", "?", ON, operator.eq),
+
+("receiver.main_mute", "=", OFF, operator.eq),
+("receiver.main_mute", "?", OFF, operator.eq),
+
+# Not a feature for this amp
+("receiver.main_dimmer", "?", None, operator.is_),
+
+# Stepper motor and this thing has no idea about the volume
+("receiver.main_volume", "?", None, operator.is_),
+
+# No exception
+("receiver.main_volume", "+", None, operator.is_),
+("receiver.main_volume", "-", None, operator.is_),
+
+("receiver.main_version", "?", "V1.02", operator.eq),
+("receiver.main_model", "?", "C356BEE", operator.eq),
+
+# Here the RS232 NAD manual seems to be slightly off / maybe the model is different
+# The manual claims:
+# CD Tuner Video Disc Ipod Tape2 Aux
+# My Amp:
+# CD Tuner Disc/MDC Aux Tape2 MP
+# Protocol V2 represents sources as strings, we should get these:
+("receiver.main_source", "=", "AUX", operator.eq),
+("receiver.main_source", "?", "AUX", operator.eq),
+("receiver.main_source", "=", "CD", operator.eq),
+("receiver.main_source", "?", "CD", operator.eq),
+("receiver.main_source", "+", "TUNER", operator.eq),
+("receiver.main_source", "-", "CD", operator.eq),
+("receiver.main_source", "+", "TUNER", operator.eq),
+("receiver.main_source", "+", "DISC/MDC", operator.eq),
+("receiver.main_source", "+", "AUX", operator.eq),
+("receiver.main_source", "+", "TAPE2", operator.eq),
+("receiver.main_source", "+", "MP", operator.eq),
+("receiver.main_source", "+", "CD", operator.eq),
+("receiver.main_source", "-", "MP", operator.eq),
+
+# Tape monitor / tape 1 is independent of sources
+("receiver.main_tape_monitor", "=", OFF, operator.eq),
+("receiver.main_tape_monitor", "?", OFF, operator.eq),
+("receiver.main_tape_monitor", "=", ON, operator.eq),
+("receiver.main_tape_monitor", "+", OFF, operator.eq),
+
+("receiver.main_speaker_a", "=", OFF, operator.eq),
+("receiver.main_speaker_a", "?", OFF, operator.eq),
+("receiver.main_speaker_a", "=", ON, operator.eq),
+("receiver.main_speaker_a", "?", ON, operator.eq),
+("receiver.main_speaker_a", "+", OFF, operator.eq),
+("receiver.main_speaker_a", "+", ON, operator.eq),
+("receiver.main_speaker_a", "-", OFF, operator.eq),
+("receiver.main_speaker_a", "-", ON, operator.eq),
+
+("receiver.main_speaker_b", "=", OFF, operator.eq),
+("receiver.main_speaker_b", "?", OFF, operator.eq),
+
+("receiver.main_power", "=", OFF, operator.eq),
+]
+
 # The NAD Units to test
-NAD_Units = [Fake_NAD_C_356BE()]
+NAD_Units = [(Fake_NAD_C_356BE(), SerialTests)]
 
 
-def _test_commands(receiver) -> None:
-    assert receiver.main_power("?") in (ON, OFF)
+def _test_command(receiver, func, command, response, op) -> None:
+    assert op(eval(func)(command, response), response)
 
-    # switch off
-    assert receiver.main_power("=", OFF) == OFF
-    assert receiver.main_power("?") == OFF
-    assert receiver.main_power("+") == ON
-    assert receiver.main_power("+") == OFF
-    assert receiver.main_power("?") == OFF
 
-    # C 356BE does not reply for commands other than power when off
-    assert receiver.main_mute("?") is None
+def _test_commands(receiver, tests) -> None:
+    for func, command, response, op in tests:
+        _test_command(receiver, func, command, response, op)
 
-    assert receiver.main_power("=", ON) == ON
-    assert receiver.main_power("?") == ON
-
-    assert receiver.main_mute("=", OFF) == OFF
-    assert receiver.main_mute("?") == OFF
-
-    # Not a feature for this amp
-    assert receiver.main_dimmer("?") is None
-
-    # Stepper motor and this thing has no idea about the volume
-    assert receiver.main_volume("?") is None
-
-    # No exception
-    assert receiver.main_volume("+") is None
-    assert receiver.main_volume("-") is None
-
-    assert receiver.main_version("?") == "V1.02"
-    assert receiver.main_model("?") == "C356BEE"
-
-    # Here the RS232 NAD manual seems to be slightly off / maybe the model is different
-    # The manual claims:
-    # CD Tuner Video Disc Ipod Tape2 Aux
-    # My Amp:
-    # CD Tuner Disc/MDC Aux Tape2 MP
-    # Protocol V2 represents sources as strings, we should get these:
-    assert receiver.main_source("=", "AUX") == "AUX"
-    assert receiver.main_source("?") == "AUX"
-    assert receiver.main_source("=", "CD") == "CD"
-    assert receiver.main_source("?") == "CD"
-    assert receiver.main_source("+") == "TUNER"
-    assert receiver.main_source("-") == "CD"
-    assert receiver.main_source("+") == "TUNER"
-    assert receiver.main_source("+") == "DISC/MDC"
-    assert receiver.main_source("+") == "AUX"
-    assert receiver.main_source("+") == "TAPE2"
-    assert receiver.main_source("+") == "MP"
-    assert receiver.main_source("+") == "CD"
-    assert receiver.main_source("-") == "MP"
-
-    # Tape monitor / tape 1 is independent of sources
-    assert receiver.main_tape_monitor("=", OFF) == OFF
-    assert receiver.main_tape_monitor("?") == OFF
-    assert receiver.main_tape_monitor("=", ON) == ON
-    assert receiver.main_tape_monitor("+") == OFF
-
-    assert receiver.main_speaker_a("=", OFF) == OFF
-    assert receiver.main_speaker_a("?") == OFF
-    assert receiver.main_speaker_a("=", ON) == ON
-    assert receiver.main_speaker_a("?") == ON
-    assert receiver.main_speaker_a("+") == OFF
-    assert receiver.main_speaker_a("+") == ON
-    assert receiver.main_speaker_a("-") == OFF
-    assert receiver.main_speaker_a("-") == ON
-
-    assert receiver.main_speaker_b("=", OFF) == OFF
-    assert receiver.main_speaker_b("?") == OFF
-
-    assert receiver.main_power("=", OFF) == OFF
+    #assert receiver.main_power("?") in (ON, OFF)
 
 
 
 def test_protocol() -> None:
     # This test can be run with the real amplifier, just instantiate
     # the real transport instead of the fake one
-    for receiver in NAD_Units:
-        _test_commands(receiver)
+    for receiver, tests in NAD_Units:
+        _test_commands(receiver, tests)
