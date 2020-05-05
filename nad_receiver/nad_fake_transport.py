@@ -102,9 +102,6 @@ class Fake_NAD_C_356BE_Transport(Fake_NAD_Transport):
         self._version = "V1.02"
         self._sources = "CD TUNER DISC/MDC AUX TAPE2 MP".split()
         self._source = "CD"
-        self._command_regex = re.compile(
-            r"(?P<component>\w+)\.(?P<function>\w+)(?P<operator>[=\?\+\-])(?P<value>.*)"
-        )
 
 
 class Fake_NAD_Telnet_Transport(Fake_NAD_Transport):
@@ -123,6 +120,3 @@ class Fake_NAD_Telnet_Transport(Fake_NAD_Transport):
         self._version = "V2.10"
         self._sources = "CD TUNER DISC/MDC AUX TAPE2 MP".split()
         self._source = "CD"
-        self._command_regex = re.compile(
-            r"(?P<component>\w+)\.(?P<function>\w+)(?P<operator>[=\?\+\-])(?P<value>.*)"
-        )
