@@ -71,13 +71,28 @@ class TelnetTransport(NadTransport):
     def _open_connection(self) -> None:
         if not self.telnet:
             try:
-                self.telnet = telnetlib.Telnet(self.host, self.port, 3)
-                # Some versions of the firmware report Main.Model=T787.
-                # some versions do not, we want to clear that line
+                self.telnet = telnetlib.Telnet(self.host, self.port, self.timeout)
+            except Exception as e:
+                _LOGGER.debug("Connection failed to open: %s" % e)
+                return
+
+            # On initial connection
+            # some firmwares sends nothing
+            # some firmwares sends e.g. b'\rMain.Model=T787\r\n'
+            # some firmwares sends multiple lines (BlueOS settings dump ?)
+            #    including blank lines between data lines
+            # At least clear the row "\rMain.Model=T787\r\n"
+            try:
                 self.telnet.read_until("\n".encode(), self.timeout)
                 # Could raise eg. EOFError, UnicodeError
-            except (EOFError, UnicodeError):
-                pass
+            except EOFError as cc:
+                # Connection closed, no recovery
+                _LOGGER.debug("Connection closed: %s", cc)
+                self.telnet = None
+                return
+            except UnicodeError as ue:
+                _LOGGER.debug("Unicode error: %s", ue)
+                return
 
     def communicate(self, cmd: str) -> str:
         self._open_connection()
