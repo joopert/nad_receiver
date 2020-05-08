@@ -81,8 +81,24 @@ class TelnetTransport(NadTransport):
 
     def communicate(self, cmd: str) -> str:
         self._open_connection()
-        assert self.telnet
+        if not self.telnet:
+            return ""
 
-        self.telnet.write(f"\r{cmd}\r".encode())
-        msg = self.telnet.read_until(b"\r", self.timeout)
+        try:
+            _LOGGER.debug("Sending command: %s", cmd)
+            self.telnet.write(f"\n{cmd}\r".encode())
+
+            # Notice NAD response to command ends with \r and starts with \n
+            # E.g. b'\nMain.Power=On\r'
+            msg = self.telnet.read_until(b"\r", self.timeout)
+            _LOGGER.debug("Read response: %s", str(msg))
+        except EOFError as cc:
+            # Connection closed
+            _LOGGER.debug("Connection closed: %s", cc)
+            self.telnet = None
+            return ""
+        except UnicodeError as ue:
+            _LOGGER.debug("Unicode error: %s", ue)
+            return ""
+
         return msg.strip().decode()
