@@ -43,7 +43,7 @@ class NADReceiver:
             cmd = ''.join([CMDS[domain][function]['cmd'], operator])  # type: ignore
             assert isinstance(cmd, str)
             if value:
-                cmd = cmd + value
+                cmd = cmd + str(value)
         else:
             raise ValueError('Invalid operator provided %s' % operator)
 
