@@ -46,9 +46,9 @@ class SerialPortTransport(NadTransport):
             # To get complete messages, always read until we get '\r'
             # Messages will be of the form '\rMESSAGE\r' which
             # pyserial handles nicely
-            msg = self.ser.read_until("\r")
+            msg = self.ser.read_until(serial.CR)
             if not msg.strip():  # discard '\r' if it was sent
-                msg = self.ser.read_until("\r")
+                msg = self.ser.read_until(serial.CR)
             assert isinstance(msg, bytes)
             return msg.strip().decode()
 
