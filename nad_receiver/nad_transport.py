@@ -53,6 +53,72 @@ class SerialPortTransport(NadTransport):
             return msg.strip().decode()
 
 
+# TelnetTransport wrapper
+# A class to wrap the TelnetTransport in such
+# a way that e.g. Home Assistant will not
+# receive any exceptions
+class TelnetTransportWrapper(NadTransport):
+    def __init__(self, host: str, port: int, timeout: int) -> None:
+        """Create NADTelnet."""
+        self.nad_telnet = TelnetTransport(host, port, timeout)
+
+    def __del__(self) -> None:
+        """Destroy NADTelnet."""
+        if self.nad_telnet:
+            del self.nad_telnet
+
+    def _pre_read(self) -> bool:
+        # On initial connection
+        # some firmwares sends nothing
+        # some firmwares sends e.g. b'\rMain.Model=T787\r\n'
+        # some firmwares sends multiple lines (BlueOS settings dump ?)
+        #    including blank lines between data lines
+        # At least clear the row "\rMain.Model=T787\r\n"
+        try:
+            self.nad_telnet.read_until("\n".encode())
+            # Could raise eg. EOFError, UnicodeError
+        except EOFError as cc:
+            # Connection closed, no recovery
+            _LOGGER.debug("Connection closed: %s", cc)
+            self.nad_telnet.close_connection()
+            return False
+        except UnicodeError as ue:
+            # Some unicode error, but connection is open
+            _LOGGER.debug("Unicode error: %s", ue)
+            return True
+
+        return True
+
+    def _open_connection(self) -> bool:
+        if self.nad_telnet.is_open():
+            return True
+
+        try:
+            self.nad_telnet.open_connection()
+        except Exception as e:
+            _LOGGER.debug("Connection failed to open: %s" % e)
+            return False
+
+        return self._pre_read()
+
+    def communicate(self, cmd: str) -> str:
+        rsp = ""
+        if not self._open_connection():
+            return rsp
+
+        try:
+            rsp = self.nad_telnet.communicate(cmd)
+        except EOFError as cc:
+            # Connection closed
+            _LOGGER.debug("Connection closed: %s", cc)
+            self.nad_telnet.close_connection()
+        except UnicodeError as ue:
+            # Some unicode error, but connection is open
+            _LOGGER.debug("Unicode error: %s", ue)
+
+        return rsp
+
+
 class TelnetTransport(NadTransport):
     """
     Support NAD amplifiers that use telnet for communication.
@@ -68,52 +134,44 @@ class TelnetTransport(NadTransport):
         self.port = port
         self.timeout = timeout
 
-    def _open_connection(self) -> None:
-        if not self.telnet:
-            try:
-                self.telnet = telnetlib.Telnet(self.host, self.port, self.timeout)
-            except Exception as e:
-                _LOGGER.debug("Connection failed to open: %s" % e)
-                return
+    def __del__(self) -> None:
+        try:
+            self.close_connection()
+        except Exception:
+            pass
 
-            # On initial connection
-            # some firmwares sends nothing
-            # some firmwares sends e.g. b'\rMain.Model=T787\r\n'
-            # some firmwares sends multiple lines (BlueOS settings dump ?)
-            #    including blank lines between data lines
-            # At least clear the row "\rMain.Model=T787\r\n"
-            try:
-                self.telnet.read_until("\n".encode(), self.timeout)
-                # Could raise eg. EOFError, UnicodeError
-            except EOFError as cc:
-                # Connection closed, no recovery
-                _LOGGER.debug("Connection closed: %s", cc)
-                self.telnet = None
-                return
-            except UnicodeError as ue:
-                _LOGGER.debug("Unicode error: %s", ue)
-                return
+    def is_open(self) -> bool:
+        return True if self.telnet else False
+
+    def open_connection(self) -> None:
+        if self.telnet:
+            raise Exception("Connection already open for host '%s:%s'" % (self.host, self.port))
+
+        _LOGGER.debug("Open connection to: '%s:%s'" % (self.host, self.port))
+        self.telnet = telnetlib.Telnet(self.host, self.port, self.timeout)
+
+    def close_connection(self) -> None:
+        telnet = self.telnet
+        self.telnet = None
+        if telnet:
+            _LOGGER.debug("Close connection to: '%s:%s'" % (self.host, self.port))
+            telnet.close()
+
+    def read_until(self, data) -> None:
+        if not self.telnet:
+            raise Exception("Connection is closed")
+
+        self.telnet.read_until(data, self.timeout)
 
     def communicate(self, cmd: str) -> str:
-        self._open_connection()
         if not self.telnet:
-            return ""
+            raise Exception("Connection is closed")
 
-        try:
-            _LOGGER.debug("Sending command: %s", cmd)
-            self.telnet.write(f"\n{cmd}\r".encode())
+        _LOGGER.debug("Sending command: '%s'", cmd)
+        self.telnet.write(f"\n{cmd}\r".encode())
 
-            # Notice NAD response to command ends with \r and starts with \n
-            # E.g. b'\nMain.Power=On\r'
-            msg = self.telnet.read_until(b"\r", self.timeout)
-            _LOGGER.debug("Read response: %s", str(msg))
-        except EOFError as cc:
-            # Connection closed
-            _LOGGER.debug("Connection closed: %s", cc)
-            self.telnet = None
-            return ""
-        except UnicodeError as ue:
-            _LOGGER.debug("Unicode error: %s", ue)
-            return ""
-
-        return msg.strip().decode()
+        # Notice NAD response to command ends with \r and starts with \n
+        # E.g. b'\nMain.Power=On\r'
+        rsp = self.telnet.read_until(b"\r", self.timeout)
+        _LOGGER.debug("Read response: '%s'", str(rsp))
+        return rsp.strip().decode()

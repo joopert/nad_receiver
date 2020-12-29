@@ -10,7 +10,7 @@ import socket
 from time import sleep
 from typing import Any, Dict, Iterable, Optional, Union
 from nad_receiver.nad_commands import CMDS
-from nad_receiver.nad_transport import (NadTransport, SerialPortTransport, TelnetTransport,
+from nad_receiver.nad_transport import (NadTransport, SerialPortTransport, TelnetTransportWrapper,
                                         DEFAULT_TIMEOUT)
 
 import logging
@@ -168,7 +168,7 @@ class NADReceiverTelnet(NADReceiver):
 
     def __init__(self, host: str, port: int =23, timeout: int =DEFAULT_TIMEOUT):
         """Create NADTelnet."""
-        self.transport = TelnetTransport(host, port, timeout)
+        self.transport = TelnetTransportWrapper(host, port, timeout)
 
 
 class NADReceiverTCP:
