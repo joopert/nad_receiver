@@ -41,8 +41,15 @@ class SerialPortTransport(NadTransport):
     def communicate(self, command: str) -> str:
         with self.lock:
             self._open_connection()
+            try:
+                self.ser.write(f"\r{command}\r".encode("utf-8"))
+            except OSError as ioerror:
+                _LOGGER.error("Writing command failed, closing connection")
+                self.ser.close()
+                return ''
+                # closes connection, current command is not
+                # executed but next time a new connection is created
 
-            self.ser.write(f"\r{command}\r".encode("utf-8"))
             # To get complete messages, always read until we get '\r'
             # Messages will be of the form '\rMESSAGE\r' which
             # pyserial handles nicely
