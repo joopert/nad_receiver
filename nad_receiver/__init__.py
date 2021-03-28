@@ -19,7 +19,7 @@ import logging
 logging.basicConfig()
 _LOGGER = logging.getLogger("nad_receiver")
 # Uncomment this line to see all communication with the device:
-# _LOGGER.setLevel(logging.DEBUG)
+_LOGGER.setLevel(logging.DEBUG)
 
 
 class NADReceiver:
@@ -74,6 +74,7 @@ class NADReceiver:
         Returns float
         """
         volume = self.exec_command('main', 'volume', operator, str(value))
+        _LOGGER.debug(f"volume: '{volume}'")
         if volume is None:
             return None
         try:
