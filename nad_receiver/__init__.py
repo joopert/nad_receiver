@@ -19,7 +19,7 @@ import logging
 logging.basicConfig()
 _LOGGER = logging.getLogger("nad_receiver")
 # Uncomment this line to see all communication with the device:
-_LOGGER.setLevel(logging.DEBUG)
+# _LOGGER.setLevel(logging.DEBUG)
 
 
 class NADReceiver:
