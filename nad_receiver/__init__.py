@@ -73,7 +73,11 @@ class NADReceiver:
 
         Returns float
         """
-        volume = self.exec_command('main', 'volume', operator, str(value))
+        if value is not None:
+            volume = self.exec_command('main', 'volume', operator, str(value))
+        else:
+            volume = self.exec_command('main', 'volume', operator)
+
         if volume is None:
             return None
         try:
@@ -114,7 +118,11 @@ class NADReceiver:
 
         Returns int
         """
-        source = self.exec_command('main', 'source', operator, str(value))
+        if value is not None:
+            source = self.exec_command('main', 'source', operator, str(value))
+        else:
+            source = self.exec_command('main', 'source', operator)
+
         if source is None:
             return None
         try:
