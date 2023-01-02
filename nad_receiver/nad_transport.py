@@ -3,20 +3,19 @@ import serial  # type: ignore
 import telnetlib
 import threading
 
-from typing import Optional
+from typing import Optional, List
 
 import logging
 
 logging.basicConfig()
 _LOGGER = logging.getLogger("nad_receiver.transport")
 
-
 DEFAULT_TIMEOUT = 1
 
 
 class NadTransport(abc.ABC):
     @abc.abstractmethod
-    def communicate(self, command: str) -> str:
+    def communicate(self, command: str, multiline: bool = False) -> str | List[str]:
         pass
 
 
@@ -101,13 +100,13 @@ class TelnetTransportWrapper(NadTransport):
 
         return self._pre_read()
 
-    def communicate(self, cmd: str) -> str:
+    def communicate(self, cmd: str, multiline) -> str | List[str]:
         rsp = ""
         if not self._open_connection():
             return rsp
 
         try:
-            rsp = self.nad_telnet.communicate(cmd)
+            rsp = self.nad_telnet.communicate(cmd, multiline)
         except EOFError as cc:
             # Connection closed
             _LOGGER.debug("Connection closed: %s", cc)
@@ -145,7 +144,9 @@ class TelnetTransport(NadTransport):
 
     def open_connection(self) -> None:
         if self.telnet:
-            raise Exception("Connection already open for host '%s:%s'" % (self.host, self.port))
+            raise Exception(
+                "Connection already open for host '%s:%s'" % (self.host, self.port)
+            )
 
         _LOGGER.debug("Open connection to: '%s:%s'" % (self.host, self.port))
         self.telnet = telnetlib.Telnet(self.host, self.port, self.timeout)
@@ -163,15 +164,31 @@ class TelnetTransport(NadTransport):
 
         self.telnet.read_until(data, self.timeout)
 
-    def communicate(self, cmd: str) -> str:
+    def read_all(self, data) -> None:
+        if not self.telnet:
+            raise Exception("Connection is closed")
+
+        self.telnet.read_all()
+
+    def communicate(self, cmd: str, multiline) -> str | List[str]:
         if not self.telnet:
             raise Exception("Connection is closed")
 
         _LOGGER.debug("Sending command: '%s'", cmd)
         self.telnet.write(f"\n{cmd}\r".encode())
 
-        # Notice NAD response to command ends with \r and starts with \n
-        # E.g. b'\nMain.Power=On\r'
-        rsp = self.telnet.read_until(b"\r", self.timeout)
-        _LOGGER.debug("Read response: '%s'", str(rsp))
-        return rsp.strip().decode()
+        rsp_lines = []
+        while True:
+            # Notice NAD response to command ends with \r and starts with \n
+            # E.g. b'\nMain.Power=On\r'
+            rsp = self.telnet.read_until(b"\r", self.timeout)
+            rsp = rsp.strip().decode()
+            _LOGGER.debug("Read response: '%s'", str(rsp))
+            if not multiline:
+                return rsp
+            if len(rsp) > 1:
+                rsp_lines.append(rsp)
+            else:
+                break
+
+        return rsp_lines
