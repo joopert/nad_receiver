@@ -73,10 +73,13 @@ class NADReceiver:
 
         Returns float
         """
+        return self._volume('main', operator, value)
+
+    def _volume(self, domain: str, operator: str, value: str) -> Optional[float]:
         if value is not None:
-            volume = self.exec_command('main', 'volume', operator, str(value))
+            volume = self.exec_command(domain, 'volume', operator, str(value))
         else:
-            volume = self.exec_command('main', 'volume', operator)
+            volume = self.exec_command(domain, 'volume', operator)
 
         if volume is None:
             return None
@@ -197,6 +200,22 @@ class NADReceiver:
         if not self._has_zone2():
             raise ValueError("Zone2 unavilable")
         return self.exec_command('zone2', 'power', operator, value)
+
+    def zone2_volume(self, operator: str, value: Optional[str] =None) -> Optional[float]:
+        """
+        Execute Zone2.Volume.
+
+        Returns float
+        """
+        if not self._has_zone2():
+            raise ValueError("Zone2 unavilable")
+        return self._volume('zone2', operator, value)
+
+    def zone2_listeningmode(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+        """Execute Zone2.ListeningMode."""
+        if not self._has_zone2():
+            raise ValueError("Zone2 unavilable")
+        return self.exec_command('zone2', 'listeningmode', operator, value)
 
 
 class NADReceiverTelnet(NADReceiver):
