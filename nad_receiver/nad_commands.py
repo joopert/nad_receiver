@@ -41,6 +41,18 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                 {'cmd': 'Main.Source',
                  'supported_operators': ['+', '-', '=', '?']
                  },
+            'codec':
+                {'cmd': 'Main.Audio.CODEC',
+                 'supported_operators': ['=', '?']
+                 },
+            'arc':
+                {'cmd': 'Main.Video.ARC',
+                 'supported_operators': ['=', '?']
+                 },
+            'back':
+                {'cmd': 'Main.Amp.Back',
+                 'supported_operators': ['?']
+                 },
             'version':
                 {'cmd': 'Main.Version',
                  'supported_operators': ['?']
@@ -88,5 +100,16 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                 {'cmd': 'Tuner.FM.Preset',
                  'supported_operators': ['+', '-', '=', '?']
                  }
+        },
+    'zone2':
+        {
+            'power':
+                {'cmd': 'Zone2.Power',
+                 'supported_operators': ['+', '-', '=', '?']
+                 },
+            'source':
+                {'cmd': 'Zone2.Source',
+                 'supported_operators': ['+', '-', '=', '?']
+                 },
         }
 }

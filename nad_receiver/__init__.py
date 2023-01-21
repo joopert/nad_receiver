@@ -118,10 +118,13 @@ class NADReceiver:
 
         Returns int
         """
+        return self._source('main', operator, value)
+
+    def _source(self, domain: str, operator: str, value: str) -> Optional[Union[int, str]]:
         if value is not None:
-            source = self.exec_command('main', 'source', operator, str(value))
+            source = self.exec_command(domain, 'source', operator, str(value))
         else:
-            source = self.exec_command('main', 'source', operator)
+            source = self.exec_command(domain, 'source', operator)
 
         if source is None:
             return None
@@ -132,6 +135,14 @@ class NADReceiver:
             # return source as string
             return source
         return None
+
+    def main_codec(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+        """Execute Main.Audio.Codec."""
+        return self.exec_command('main', 'codec', operator, value)
+
+    def main_arc(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+        """Execute Main.Video.ARC."""
+        return self.exec_command('main', 'arc', operator, value)
 
     def main_version(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Version."""
@@ -164,6 +175,28 @@ class NADReceiver:
     def tuner_fm_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Preset."""
         return self.exec_command('tuner', 'fm_preset', operator, value)
+
+    def _has_zone2(self) -> bool:
+        back_config = self.exec_command('main', 'back', "?")
+        if back_config is None or "zone2" not in back_config.lower():
+            return False
+        return True
+
+    def zone2_source(self, operator: str, value: Optional[str]=None) -> Optional[Union[int, str]]:
+        """
+        Execute Zone2.Source.
+
+        Returns int
+        """
+        if not self._has_zone2():
+            raise ValueError("Zone2 unavilable")
+        return self._source('zone2', operator, value)
+
+    def zone2_power(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+        """Execute Zone2.Power."""
+        if not self._has_zone2():
+            raise ValueError("Zone2 unavilable")
+        return self.exec_command('zone2', 'power', operator, value)
 
 
 class NADReceiverTelnet(NADReceiver):
