@@ -1,6 +1,5 @@
 """
 Commands and operators used by NAD.
-
 CMDS[domain][function]
 """
 
@@ -31,7 +30,7 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                  },
             'listeningmode':
                 {'cmd': 'Main.ListeningMode',
-                 'supported_operators': ['+', '-', '=', '?']
+                 'supported_operators': ['+', '-']
                  },
             'sleep':
                 {'cmd': 'Main.Sleep',
@@ -40,18 +39,6 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
             'source':
                 {'cmd': 'Main.Source',
                  'supported_operators': ['+', '-', '=', '?']
-                 },
-            'codec':
-                {'cmd': 'Main.Audio.CODEC',
-                 'supported_operators': ['=', '?']
-                 },
-            'arc':
-                {'cmd': 'Main.Video.ARC',
-                 'supported_operators': ['=', '?']
-                 },
-            'back':
-                {'cmd': 'Main.Amp.Back',
-                 'supported_operators': ['?']
                  },
             'version':
                 {'cmd': 'Main.Version',
@@ -100,24 +87,5 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                 {'cmd': 'Tuner.FM.Preset',
                  'supported_operators': ['+', '-', '=', '?']
                  }
-        },
-    'zone2':
-        {
-            'power':
-                {'cmd': 'Zone2.Power',
-                 'supported_operators': ['+', '-', '=', '?']
-                 },
-            'source':
-                {'cmd': 'Zone2.Source',
-                 'supported_operators': ['+', '-', '=', '?']
-                 },
-            'volume':
-                {'cmd': 'Zone2.Volume',
-                 'supported_operators': ['+', '-', '=', '?']
-                 },
-            'listeningmode':
-                {'cmd': 'Zone2.ListeningMode',
-                 'supported_operators': ['+', '-', '=', '?']
-                 },
         }
 }
