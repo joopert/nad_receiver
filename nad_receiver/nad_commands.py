@@ -31,7 +31,7 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                  },
             'listeningmode':
                 {'cmd': 'Main.ListeningMode',
-                 'supported_operators': ['+', '-']
+                 'supported_operators': ['+', '-', '=', '?']
                  },
             'sleep':
                 {'cmd': 'Main.Sleep',
@@ -109,6 +109,14 @@ CMDS: Dict[str, Dict[str, Dict[str, Union[str, Iterable[str]]]]] = {
                  },
             'source':
                 {'cmd': 'Zone2.Source',
+                 'supported_operators': ['+', '-', '=', '?']
+                 },
+            'volume':
+                {'cmd': 'Zone2.Volume',
+                 'supported_operators': ['+', '-', '=', '?']
+                 },
+            'listeningmode':
+                {'cmd': 'Zone2.ListeningMode',
                  'supported_operators': ['+', '-', '=', '?']
                  },
         }
