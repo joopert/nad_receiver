@@ -1,5 +1,6 @@
 """
 NAD has an RS232 interface to control the receiver.
+
 Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
@@ -32,6 +33,7 @@ class NADReceiver:
     def exec_command(self, domain: str, function: str, operator: str, value: Optional[str] =None) -> Optional[str]:
         """
         Write a command to the receiver and read the value it returns.
+
         The receiver will always return a value, also when setting a value.
         """
         if operator in CMDS[domain][function]['supported_operators']:
@@ -68,6 +70,7 @@ class NADReceiver:
     def main_volume(self, operator: str, value: Optional[str] =None) -> Optional[float]:
         """
         Execute Main.Volume.
+
         Returns float
         """
         if value is not None:
@@ -112,6 +115,7 @@ class NADReceiver:
     def main_source(self, operator: str, value: Optional[str]=None) -> Optional[Union[int, str]]:
         """
         Execute Main.Source.
+
         Returns int
         """
         if value is not None:
@@ -166,6 +170,7 @@ class NADReceiverTelnet(NADReceiver):
     """
     Support NAD amplifiers that use telnet for communication.
     Supports all commands from the RS232 base class
+
     Known supported model: Nad T787.
     """
 
@@ -177,6 +182,7 @@ class NADReceiverTelnet(NADReceiver):
 class NADReceiverTCP:
     """
     Support NAD amplifiers that use tcp for communication.
+
     Known supported model: Nad D 7050.
     """
 
@@ -244,6 +250,7 @@ class NADReceiverTCP:
     def status(self) -> Optional[Dict[str, Any]]:
         """
         Return the status of the device.
+
         Returns a dictionary with keys 'volume' (int 0-200) , 'power' (bool),
          'muted' (bool) and 'source' (str).
         """

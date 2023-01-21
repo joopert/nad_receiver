@@ -1,5 +1,6 @@
 """
 Commands and operators used by NAD.
+
 CMDS[domain][function]
 """
 
