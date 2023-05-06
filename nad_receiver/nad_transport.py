@@ -42,6 +42,7 @@ class SerialPortTransport(NadTransport):
         with self.lock:
             self._open_connection()
 
+            self.ser.reset_input_buffer()
             self.ser.write(f"\r{command}\r".encode("utf-8"))
             # To get complete messages, always read until we get '\r'
             # Messages will be of the form '\rMESSAGE\r' which
