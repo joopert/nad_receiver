@@ -1,5 +1,6 @@
 import abc
 import serial  # type: ignore
+import time
 import telnetlib
 import threading
 
@@ -166,13 +167,27 @@ class TelnetTransport(NadTransport):
 
     def communicate(self, cmd: str) -> str:
         if not self.telnet:
-            raise Exception("Connection is closed")
+            raise Exception("Connection is closed. Attempting to reconnect...")
+            self.open_connection()
 
-        _LOGGER.debug("Sending command: '%s'", cmd)
-        self.telnet.write(f"\n{cmd}\r".encode())
+        try:
+            _LOGGER.debug("Sending command: '%s'", cmd)
+            self.telnet.write(f"\n{cmd}\r".encode())
 
-        # Notice NAD response to command ends with \r and starts with \n
-        # E.g. b'\nMain.Power=On\r'
-        rsp = self.telnet.read_until(b"\r", self.timeout)
-        _LOGGER.debug("Read response: '%s'", str(rsp))
-        return rsp.strip().decode()
+            # Notice NAD response to command ends with \r and starts with \n
+            # E.g. b'\nMain.Power=On\r'
+            rsp = self.telnet.read_until(b"\r", self.timeout)
+            _LOGGER.debug("Read response: '%s'", str(rsp))
+            return rsp.strip().decode()
+
+        except (BrokenPipeError, ConnectionResetError):
+            _LOGGER.warning("Lost connection. Attempting to reconnect...")
+            self.close_connection()
+            self.open_connection()
+
+            # Delay a short period before retrying the command
+            time.sleep(1)
+
+            # Retry the command after reconnecting
+            return self.communicate(cmd)
+
