@@ -116,6 +116,10 @@ class TelnetTransportWrapper(NadTransport):
         except UnicodeError as ue:
             # Some unicode error, but connection is open
             _LOGGER.debug("Unicode error: %s", ue)
+        except (BrokenPipeError, ConnectionResetError):
+            _LOGGER.debug("Lost connection. Attempting to reconnect...")
+            self.nad_telnet.close_connection()
+            self.nad_telnet.open_connection()
 
         return rsp
 
