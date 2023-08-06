@@ -109,7 +109,7 @@ class TelnetTransportWrapper(NadTransport):
 
         try:
             rsp = self.nad_telnet.communicate(cmd)
-        except EOFError as cc:
+        except (EOFError,BrokenPipeError, ConnectionResetError) as cc:
             # Connection closed
             _LOGGER.debug("Connection closed: %s", cc)
             self.nad_telnet.close_connection()
