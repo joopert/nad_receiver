@@ -1,6 +1,6 @@
 import abc
 import serial  # type: ignore
-import telnetlib  # type: ignore
+from telnetlib3.telnetlib import Telnet  # type: ignore
 import threading
 
 from typing import Optional
@@ -130,7 +130,7 @@ class TelnetTransport(NadTransport):
 
     def __init__(self, host: str, port: int, timeout: int) -> None:
         """Create NADTelnet."""
-        self.telnet: Optional[telnetlib.Telnet] = None
+        self.telnet: Optional[Telnet] = None
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -149,7 +149,7 @@ class TelnetTransport(NadTransport):
             raise Exception("Connection already open for host '%s:%s'" % (self.host, self.port))
 
         _LOGGER.debug("Open connection to: '%s:%s'" % (self.host, self.port))
-        self.telnet = telnetlib.Telnet(self.host, self.port, self.timeout)
+        self.telnet = Telnet(self.host, self.port, self.timeout)
 
     def close_connection(self) -> None:
         telnet = self.telnet
