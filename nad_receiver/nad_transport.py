@@ -7,7 +7,6 @@ from typing import Optional
 
 import logging
 
-logging.basicConfig()
 _LOGGER = logging.getLogger("nad_receiver.transport")
 
 
