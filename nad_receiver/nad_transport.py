@@ -1,6 +1,6 @@
 import abc
 import serial  # type: ignore
-import telnetlib
+import telnetlib  # type: ignore
 import threading
 
 from typing import Optional
