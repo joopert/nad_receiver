@@ -40,7 +40,7 @@ class SerialPortTransport(NadTransport):
         async with self.lock:
             await self._open_connection()
 
-            await self.ser.write(f"\r{command}\r".encode("utf-8"))
+            self.ser.write(f"\r{command}\r".encode("utf-8"))
             # To get complete messages, always read until we get '\r'
             # Messages will be of the form '\rMESSAGE\r' which
             # serialx handles nicely
