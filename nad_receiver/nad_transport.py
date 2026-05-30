@@ -1,7 +1,7 @@
 import abc
+import asyncio
 import serialx  # type: ignore
-from telnetlib3.telnetlib import Telnet  # type: ignore
-import threading
+import telnetlib3  # type: ignore
 
 from typing import Optional
 
@@ -16,7 +16,7 @@ DEFAULT_TIMEOUT = 1
 
 class NadTransport(abc.ABC):
     @abc.abstractmethod
-    def communicate(self, command: str) -> str:
+    async def communicate(self, command: str) -> str:
         pass
 
 
@@ -25,31 +25,28 @@ class SerialPortTransport(NadTransport):
 
     def __init__(self, url: str) -> None:
         """Create RS232 connection."""
-        self.ser = serialx.serial_for_url(
+        self.ser = serialx.async_serial_for_url(
             url=url,
             baudrate=115200,
-            timeout=DEFAULT_TIMEOUT,
-            write_timeout=DEFAULT_TIMEOUT,
         )
-        self.lock = threading.Lock()
+        self.lock = asyncio.Lock()
 
-    def _open_connection(self) -> None:
+    async def _open_connection(self) -> None:
         if not self.ser.is_open:
-            self.ser.open()
+            await self.ser.open()
             _LOGGER.debug("serial open: %s", self.ser.is_open)
 
-    def communicate(self, command: str) -> str:
-        with self.lock:
-            self._open_connection()
+    async def communicate(self, command: str) -> str:
+        async with self.lock:
+            await self._open_connection()
 
-            self.ser.reset_input_buffer()
-            self.ser.write(f"\r{command}\r".encode("utf-8"))
+            await self.ser.write(f"\r{command}\r".encode("utf-8"))
             # To get complete messages, always read until we get '\r'
             # Messages will be of the form '\rMESSAGE\r' which
             # serialx handles nicely
-            msg = self.ser.read_until(serialx.CR)
+            msg = await asyncio.wait_for(self.ser.readuntil(serialx.CR), timeout=DEFAULT_TIMEOUT)
             if not msg.strip():  # discard '\r' if it was sent
-                msg = self.ser.read_until(serialx.CR)
+                msg = await asyncio.wait_for(self.ser.readuntil(serialx.CR), timeout=DEFAULT_TIMEOUT)
             assert isinstance(msg, bytes)
             return msg.strip().decode()
 
@@ -63,12 +60,7 @@ class TelnetTransportWrapper(NadTransport):
         """Create NADTelnet."""
         self.nad_telnet = TelnetTransport(host, port, timeout)
 
-    def __del__(self) -> None:
-        """Destroy NADTelnet."""
-        if self.nad_telnet:
-            del self.nad_telnet
-
-    def _pre_read(self) -> bool:
+    async def _pre_read(self) -> bool:
         # On initial connection
         # some firmwares sends nothing
         # some firmwares sends e.g. b'\rMain.Model=T787\r\n'
@@ -76,7 +68,7 @@ class TelnetTransportWrapper(NadTransport):
         #    including blank lines between data lines
         # At least clear the row "\rMain.Model=T787\r\n"
         try:
-            self.nad_telnet.read_until("\n".encode())
+            await self.nad_telnet.read_until(b"\n")
             # Could raise eg. EOFError, UnicodeError
         except EOFError as cc:
             # Connection closed, no recovery
@@ -90,26 +82,26 @@ class TelnetTransportWrapper(NadTransport):
 
         return True
 
-    def _open_connection(self) -> bool:
+    async def _open_connection(self) -> bool:
         if self.nad_telnet.is_open():
             return True
 
         try:
-            self.nad_telnet.open_connection()
+            await self.nad_telnet.open_connection()
         except Exception as e:
             _LOGGER.debug("Connection failed to open: %s" % e)
             return False
 
-        return self._pre_read()
+        return await self._pre_read()
 
-    def communicate(self, cmd: str) -> str:
+    async def communicate(self, cmd: str) -> str:
         rsp = ""
-        if not self._open_connection():
+        if not await self._open_connection():
             return rsp
 
         try:
-            rsp = self.nad_telnet.communicate(cmd)
-        except (EOFError,BrokenPipeError, ConnectionResetError) as cc:
+            rsp = await self.nad_telnet.communicate(cmd)
+        except (EOFError, BrokenPipeError, ConnectionResetError) as cc:
             # Connection closed
             _LOGGER.debug("Connection closed: %s", cc)
             self.nad_telnet.close_connection()
@@ -130,49 +122,54 @@ class TelnetTransport(NadTransport):
 
     def __init__(self, host: str, port: int, timeout: int) -> None:
         """Create NADTelnet."""
-        self.telnet: Optional[Telnet] = None
+        self._reader: Optional[telnetlib3.TelnetReader] = None
+        self._writer: Optional[telnetlib3.TelnetWriter] = None
         self.host = host
         self.port = port
         self.timeout = timeout
 
-    def __del__(self) -> None:
-        try:
-            self.close_connection()
-        except Exception:
-            pass
-
     def is_open(self) -> bool:
-        return True if self.telnet else False
+        return self._writer is not None and not self._writer.connection_closed
 
-    def open_connection(self) -> None:
-        if self.telnet:
+    async def open_connection(self) -> None:
+        if self.is_open():
             raise Exception("Connection already open for host '%s:%s'" % (self.host, self.port))
 
         _LOGGER.debug("Open connection to: '%s:%s'" % (self.host, self.port))
-        self.telnet = Telnet(self.host, self.port, self.timeout)
+        self._reader, self._writer = await asyncio.wait_for(
+            telnetlib3.open_connection(
+                self.host, self.port, encoding=False, connect_minwait=0.0
+            ),
+            timeout=self.timeout,
+        )
 
     def close_connection(self) -> None:
-        telnet = self.telnet
-        self.telnet = None
-        if telnet:
+        writer = self._writer
+        self._reader = None
+        self._writer = None
+        if writer:
             _LOGGER.debug("Close connection to: '%s:%s'" % (self.host, self.port))
-            telnet.close()
+            writer.close()
 
-    def read_until(self, data) -> None:
-        if not self.telnet:
+    async def read_until(self, data: bytes) -> bytes:
+        if not self._reader:
             raise Exception("Connection is closed")
+        return await asyncio.wait_for(
+            self._reader.readuntil(data), timeout=self.timeout
+        )
 
-        self.telnet.read_until(data, self.timeout)
-
-    def communicate(self, cmd: str) -> str:
-        if not self.telnet:
+    async def communicate(self, cmd: str) -> str:
+        if not self._writer or not self._reader:
             raise Exception("Connection is closed")
 
         _LOGGER.debug("Sending command: '%s'", cmd)
-        self.telnet.write(f"\n{cmd}\r".encode())
+        self._writer.write(f"\n{cmd}\r".encode())
+        await self._writer.drain()
 
         # Notice NAD response to command ends with \r and starts with \n
         # E.g. b'\nMain.Power=On\r'
-        rsp = self.telnet.read_until(b"\r", self.timeout)
+        rsp = await asyncio.wait_for(
+            self._reader.readuntil(b"\r"), timeout=self.timeout
+        )
         _LOGGER.debug("Read response: '%s'", str(rsp))
         return rsp.strip().decode()

@@ -36,7 +36,7 @@ class Fake_NAD_C_356BE_Transport(NadTransport):
         self._toggle[property] = val
         return "On" if val else "Off"
 
-    def communicate(self, command: str) -> str:
+    async def communicate(self, command: str) -> str:
         match = self._command_regex.fullmatch(command)
         if not match or match.group("component") != "Main":
             return ""

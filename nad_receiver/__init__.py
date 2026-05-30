@@ -5,9 +5,8 @@ Not all receivers have all functions.
 Functions can be found on the NAD website: http://nadelectronics.com/software
 """
 
+import asyncio
 import codecs
-import socket
-from time import sleep
 from typing import Any, Dict, Iterable, Optional, Union
 from nad_receiver.nad_commands import CMDS
 from nad_receiver.nad_transport import (NadTransport, SerialPortTransport, TelnetTransportWrapper,
@@ -30,7 +29,7 @@ class NADReceiver:
         """Create RS232 connection."""
         self.transport = SerialPortTransport(serial_port)
 
-    def exec_command(self, domain: str, function: str, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def exec_command(self, domain: str, function: str, operator: str, value: Optional[str] =None) -> Optional[str]:
         """
         Write a command to the receiver and read the value it returns.
 
@@ -48,35 +47,35 @@ class NADReceiver:
             raise ValueError('Invalid operator provided %s' % operator)
 
         try:
-            msg = self.transport.communicate(cmd)
+            msg = await self.transport.communicate(cmd)
             _LOGGER.debug(f"sent: '{cmd}' reply: '{msg}'")
             return msg.split('=')[1]
         except IndexError:
             pass
         return None
 
-    def main_dimmer(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_dimmer(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Dimmer."""
-        return self.exec_command('main', 'dimmer', operator, value)
+        return await self.exec_command('main', 'dimmer', operator, value)
 
-    def main_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Mute."""
-        return self.exec_command('main', 'mute', operator, value)
+        return await self.exec_command('main', 'mute', operator, value)
 
-    def main_power(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_power(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Power."""
-        return self.exec_command('main', 'power', operator, value)
+        return await self.exec_command('main', 'power', operator, value)
 
-    def main_volume(self, operator: str, value: Optional[str] =None) -> Optional[float]:
+    async def main_volume(self, operator: str, value: Optional[str] =None) -> Optional[float]:
         """
         Execute Main.Volume.
 
         Returns float
         """
         if value is not None:
-            volume = self.exec_command('main', 'volume', operator, str(value))
+            volume = await self.exec_command('main', 'volume', operator, str(value))
         else:
-            volume = self.exec_command('main', 'volume', operator)
+            volume = await self.exec_command('main', 'volume', operator)
 
         if volume is None:
             return None
@@ -88,40 +87,40 @@ class NADReceiver:
 
         return None
 
-    def main_ir(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_ir(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.IR."""
-        return self.exec_command('main', 'ir', operator, value)
+        return await self.exec_command('main', 'ir', operator, value)
 
-    def main_listeningmode(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_listeningmode(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.ListeningMode."""
-        return self.exec_command('main', 'listeningmode', operator, value)
+        return await self.exec_command('main', 'listeningmode', operator, value)
 
-    def main_sleep(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_sleep(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Sleep."""
-        return self.exec_command('main', 'sleep', operator, value)
+        return await self.exec_command('main', 'sleep', operator, value)
 
-    def main_tape_monitor(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_tape_monitor(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Tape1."""
-        return self.exec_command('main', 'tape_monitor', operator, value)
+        return await self.exec_command('main', 'tape_monitor', operator, value)
 
-    def main_speaker_a(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_speaker_a(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.SpeakerA."""
-        return self.exec_command('main', 'speaker_a', operator, value)
+        return await self.exec_command('main', 'speaker_a', operator, value)
 
-    def main_speaker_b(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_speaker_b(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.SpeakerB."""
-        return self.exec_command('main', 'speaker_b', operator, value)
+        return await self.exec_command('main', 'speaker_b', operator, value)
 
-    def main_source(self, operator: str, value: Optional[str]=None) -> Optional[Union[int, str]]:
+    async def main_source(self, operator: str, value: Optional[str]=None) -> Optional[Union[int, str]]:
         """
         Execute Main.Source.
 
         Returns int
         """
         if value is not None:
-            source = self.exec_command('main', 'source', operator, str(value))
+            source = await self.exec_command('main', 'source', operator, str(value))
         else:
-            source = self.exec_command('main', 'source', operator)
+            source = await self.exec_command('main', 'source', operator)
 
         if source is None:
             return None
@@ -133,37 +132,37 @@ class NADReceiver:
             return source
         return None
 
-    def main_version(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_version(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Version."""
-        return self.exec_command('main', 'version', operator, value)
+        return await self.exec_command('main', 'version', operator, value)
 
-    def main_model(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def main_model(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Main.Model."""
-        return self.exec_command('main', 'model', operator, value)
+        return await self.exec_command('main', 'model', operator, value)
 
-    def tuner_am_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_am_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.AM.Frequence."""
-        return self.exec_command('tuner', 'am_frequency', operator, value)
+        return await self.exec_command('tuner', 'am_frequency', operator, value)
 
-    def tuner_am_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_am_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.AM.Preset."""
-        return self.exec_command('tuner', 'am_preset', operator, value)
+        return await self.exec_command('tuner', 'am_preset', operator, value)
 
-    def tuner_band(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_band(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.Band."""
-        return self.exec_command('tuner', 'band', operator, value)
+        return await self.exec_command('tuner', 'band', operator, value)
 
-    def tuner_fm_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_fm_frequency(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Frequence."""
-        return self.exec_command('tuner', 'fm_frequency', operator, value)
+        return await self.exec_command('tuner', 'fm_frequency', operator, value)
 
-    def tuner_fm_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_fm_mute(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Mute."""
-        return self.exec_command('tuner', 'fm_mute', operator, value)
+        return await self.exec_command('tuner', 'fm_mute', operator, value)
 
-    def tuner_fm_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
+    async def tuner_fm_preset(self, operator: str, value: Optional[str] =None) -> Optional[str]:
         """Execute Tuner.FM.Preset."""
-        return self.exec_command('tuner', 'fm_preset', operator, value)
+        return await self.exec_command('tuner', 'fm_preset', operator, value)
 
 
 class NADReceiverTelnet(NADReceiver):
@@ -212,52 +211,56 @@ class NADReceiverTCP:
         """Setup globals."""
         self._host = host
 
-    def _send(self, message: str, read_reply: bool =False) -> Optional[str]:
+    async def _send(self, message: str, read_reply: bool = False) -> Optional[str]:
         """Send a command string to the amplifier."""
-        sock: socket.socket
         for tries in range(0, 3):
             try:
-                sock = socket.create_connection((self._host, self.PORT),
-                                                timeout=5)
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(self._host, self.PORT), timeout=5
+                )
                 break
-            except socket.timeout:
+            except asyncio.TimeoutError:
                 print("Socket connection timed out.")
                 return None
             except (ConnectionError, BrokenPipeError):
                 if tries == 2:
                     print("socket connect failed.")
                     return None
-                sleep(0.1)
-        if not sock:
+                await asyncio.sleep(0.1)
+        else:
             return None
-        with sock:
-            sock.send(codecs.decode(message.encode(), encoding='hex_codec'))
+        try:
+            writer.write(codecs.decode(message.encode(), encoding='hex_codec'))
+            await writer.drain()
             if read_reply:
-                sleep(0.1)
+                await asyncio.sleep(0.1)
                 reply = ''
                 tries = 0
                 max_tries = 20
                 while len(reply) < len(message) and tries < max_tries:
                     try:
-                        reply += codecs.encode(sock.recv(self.BUFFERSIZE), 'hex')\
-                            .decode("utf-8")
+                        data = await reader.read(self.BUFFERSIZE)
+                        reply += codecs.encode(data, 'hex').decode("utf-8")
                         return reply
                     except (ConnectionError, BrokenPipeError):
                         pass
                     tries += 1
+        finally:
+            writer.close()
+            await writer.wait_closed()
         return None
 
-    def status(self) -> Optional[Dict[str, Any]]:
+    async def status(self) -> Optional[Dict[str, Any]]:
         """
         Return the status of the device.
 
         Returns a dictionary with keys 'volume' (int 0-200) , 'power' (bool),
          'muted' (bool) and 'source' (str).
         """
-        nad_reply = self._send(self.POLL_VOLUME +
-                               self.POLL_POWER +
-                               self.POLL_MUTED +
-                               self.POLL_SOURCE, read_reply=True)
+        nad_reply = await self._send(self.POLL_VOLUME +
+                                     self.POLL_POWER +
+                                     self.POLL_MUTED +
+                                     self.POLL_SOURCE, read_reply=True)
         if nad_reply is None:
             return None
 
@@ -271,49 +274,49 @@ class NADReceiverTCP:
                 'muted': nad_status[2][-2:] == '01',
                 'source': self.SOURCES_REVERSED[nad_status[3][-2:]]}
 
-    def power_off(self) -> None:
+    async def power_off(self) -> None:
         """Power the device off."""
-        status = self.status()
+        status = await self.status()
         if not status:
             return None
         if status['power']:
             #  Setting power off when it is already off can cause hangs
-            self._send(self.CMD_POWERSAVE + self.CMD_OFF)
+            await self._send(self.CMD_POWERSAVE + self.CMD_OFF)
 
-    def power_on(self) -> None:
+    async def power_on(self) -> None:
         """Power the device on."""
-        status = self.status()
+        status = await self.status()
         if not status:
             return None
         if not status['power']:
-            self._send(self.CMD_ON, read_reply=True)
-            sleep(0.5)  # Give NAD7050 some time before next command
+            await self._send(self.CMD_ON, read_reply=True)
+            await asyncio.sleep(0.5)  # Give NAD7050 some time before next command
 
-    def set_volume(self, volume: int) -> None:
+    async def set_volume(self, volume: int) -> None:
         """Set volume level of the device. Accepts integer values 0-200."""
         if 0 <= volume <= 200:
             volume_hex = format(volume, "02x")  # Convert to hex
-            self._send(self.CMD_VOLUME + volume_hex)
+            await self._send(self.CMD_VOLUME + volume_hex)
 
-    def mute(self) -> None:
+    async def mute(self) -> None:
         """Mute the device."""
-        self._send(self.CMD_MUTE, read_reply=True)
+        await self._send(self.CMD_MUTE, read_reply=True)
 
-    def unmute(self) -> None:
+    async def unmute(self) -> None:
         """Unmute the device."""
-        self._send(self.CMD_UNMUTE)
+        await self._send(self.CMD_UNMUTE)
 
-    def select_source(self, source: str) -> None:
+    async def select_source(self, source: str) -> None:
         """Select a source from the list of sources."""
-        status = self.status()
+        status = await self.status()
         if not status:
             return None
         if status['power']:  # Changing source when off may hang NAD7050
             # Setting the source to the current source will hang the NAD7050
             if status['source'] != source:
                 if source in self.SOURCES:
-                    self._send(self.CMD_SOURCE + self.SOURCES[source],
-                               read_reply=True)
+                    await self._send(self.CMD_SOURCE + self.SOURCES[source],
+                                     read_reply=True)
 
     def available_sources(self) -> Iterable[str]:
         """Return a list of available sources."""
